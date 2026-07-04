@@ -1,0 +1,469 @@
+/* ═══════════════════════════════════════════════════════════════
+   กปภ.พิษณุโลก — Admin Panel CSS
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Admin Trigger Button ── */
+.admin-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, rgba(255,180,0,0.15), rgba(255,100,0,0.1));
+  border: 1px solid rgba(255,180,0,0.3);
+  border-radius: 8px;
+  color: #ffb400;
+  font-family: 'Kanit', sans-serif;
+  font-size: 0.78rem;
+  padding: 6px 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  box-shadow: 0 0 12px rgba(255,180,0,0.1);
+}
+.admin-trigger:hover {
+  background: linear-gradient(135deg, rgba(255,180,0,0.25), rgba(255,100,0,0.18));
+  border-color: rgba(255,180,0,0.55);
+  box-shadow: 0 0 20px rgba(255,180,0,0.2);
+  transform: translateY(-1px);
+}
+.admin-trigger .admin-crown { font-size: 14px; }
+
+/* ── Panel Overlay ── */
+.admin-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 8000;
+  background: rgba(5,13,26,0.85);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 0;
+  animation: adminOverlayIn 0.3s ease;
+}
+@keyframes adminOverlayIn {
+  from { opacity:0; }
+  to   { opacity:1; }
+}
+.admin-overlay.closing {
+  animation: adminOverlayOut 0.28s ease forwards;
+}
+@keyframes adminOverlayOut {
+  to { opacity:0; }
+}
+
+/* ── Side Panel ── */
+.admin-panel {
+  width: 480px;
+  max-width: 100vw;
+  height: 100vh;
+  background: linear-gradient(180deg, #0a1628 0%, #080f1e 100%);
+  border-left: 1px solid rgba(255,180,0,0.15);
+  box-shadow: -24px 0 80px rgba(0,0,0,0.6), -2px 0 0 rgba(255,180,0,0.08);
+  display: flex;
+  flex-direction: column;
+  animation: panelSlideIn 0.35s cubic-bezier(0.22,1,0.36,1);
+  overflow: hidden;
+}
+@keyframes panelSlideIn {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+.admin-overlay.closing .admin-panel {
+  animation: panelSlideOut 0.28s cubic-bezier(0.4,0,1,1) forwards;
+}
+@keyframes panelSlideOut {
+  to { transform: translateX(100%); }
+}
+
+/* ── Panel Header ── */
+.admin-header {
+  padding: 24px 28px 20px;
+  background: linear-gradient(135deg, rgba(255,180,0,0.08), transparent);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  flex-shrink: 0;
+}
+.admin-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.admin-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+.admin-title-crown {
+  font-size: 20px;
+  filter: drop-shadow(0 0 8px rgba(255,180,0,0.6));
+}
+.admin-badge {
+  font-size: 0.65rem;
+  background: linear-gradient(135deg, #ffb400, #ff6400);
+  color: #000;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.admin-close {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.5);
+  border-radius: 8px;
+  width: 32px; height: 32px;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.admin-close:hover { background: rgba(255,80,80,0.15); color: #ff7070; border-color: rgba(255,80,80,0.3); }
+.admin-user-tag {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.75rem; color: rgba(255,255,255,0.35);
+}
+.admin-user-dot { width:6px; height:6px; border-radius:50%; background:#ffb400;
+  box-shadow: 0 0 6px rgba(255,180,0,0.8); animation: pulse2 2s ease-in-out infinite; }
+@keyframes pulse2 {
+  0%,100% { opacity:1; } 50% { opacity:0.3; }
+}
+
+/* ── Tabs ── */
+.admin-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 16px 28px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+.admin-tab {
+  display: flex; align-items: center; gap: 6px;
+  padding: 9px 16px 11px;
+  background: none; border: none;
+  border-bottom: 2px solid transparent;
+  color: rgba(255,255,255,0.4);
+  font-family: 'Kanit', sans-serif;
+  font-size: 0.8rem; font-weight: 500;
+  cursor: pointer; white-space: nowrap;
+  transition: all 0.2s;
+  letter-spacing: 0.02em;
+}
+.admin-tab:hover { color: rgba(255,255,255,0.7); }
+.admin-tab.active {
+  color: #ffb400;
+  border-bottom-color: #ffb400;
+}
+.admin-tab-ico { font-size: 14px; }
+
+/* ── Content ── */
+.admin-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 28px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,180,0,0.2) transparent;
+}
+.admin-body::-webkit-scrollbar { width: 4px; }
+.admin-body::-webkit-scrollbar-thumb { background: rgba(255,180,0,0.2); border-radius: 4px; }
+
+.admin-section { display: none; }
+.admin-section.active { display: block; }
+
+/* ── Section Title ── */
+.admin-section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: rgba(255,180,0,0.6);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin: 0 0 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.admin-section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255,180,0,0.2), transparent);
+}
+
+/* ── Stat Cards Grid ── */
+.admin-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.admin-stat {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.2s;
+}
+.admin-stat:hover { border-color: rgba(255,180,0,0.2); background: rgba(255,180,0,0.04); }
+.admin-stat-ico { font-size: 22px; margin-bottom: 8px; }
+.admin-stat-val {
+  font-size: 1.6rem; font-weight: 700; color: #fff;
+  line-height: 1; margin-bottom: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.admin-stat-label { font-size: 0.72rem; color: rgba(255,255,255,0.4); }
+.admin-stat.accent-gold { border-color: rgba(255,180,0,0.2); }
+.admin-stat.accent-gold .admin-stat-val { color: #ffb400; }
+.admin-stat.accent-cyan { border-color: rgba(0,212,255,0.2); }
+.admin-stat.accent-cyan .admin-stat-val { color: #00d4ff; }
+.admin-stat.accent-green { border-color: rgba(50,200,100,0.2); }
+.admin-stat.accent-green .admin-stat-val { color: #32c864; }
+.admin-stat.accent-red { border-color: rgba(255,70,70,0.2); }
+.admin-stat.accent-red .admin-stat-val { color: #ff4646; }
+
+/* ── Action Rows ── */
+.admin-actions { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+
+.admin-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  padding: 13px 16px;
+  transition: all 0.2s;
+}
+.admin-action-row:hover { border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.05); }
+.admin-action-info { flex:1; min-width:0; }
+.admin-action-label {
+  font-size: 0.85rem; font-weight: 600; color: #fff; margin-bottom: 2px;
+}
+.admin-action-desc { font-size: 0.72rem; color: rgba(255,255,255,0.35); }
+
+.admin-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  border: none; border-radius: 8px;
+  font-family: 'Kanit', sans-serif;
+  font-size: 0.78rem; font-weight: 600;
+  padding: 8px 14px;
+  cursor: pointer; white-space: nowrap;
+  transition: all 0.2s; flex-shrink: 0;
+}
+.admin-btn-primary {
+  background: linear-gradient(135deg, #0062ff, #00b4ff);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(0,98,255,0.3);
+}
+.admin-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,98,255,0.45); }
+
+.admin-btn-success {
+  background: linear-gradient(135deg, #00a855, #00c870);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(0,168,85,0.3);
+}
+.admin-btn-success:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,168,85,0.45); }
+
+.admin-btn-amber {
+  background: linear-gradient(135deg, #e07800, #ffb400);
+  color: #000;
+  box-shadow: 0 4px 14px rgba(255,180,0,0.25);
+}
+.admin-btn-amber:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(255,180,0,0.4); }
+
+.admin-btn-danger {
+  background: rgba(255,60,60,0.12);
+  border: 1px solid rgba(255,60,60,0.3);
+  color: #ff7070;
+}
+.admin-btn-danger:hover { background: rgba(255,60,60,0.22); border-color: rgba(255,60,60,0.5); transform:translateY(-1px); }
+
+.admin-btn-ghost {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.6);
+}
+.admin-btn-ghost:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+/* ── Input fields ── */
+.admin-input-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.admin-input-group label {
+  font-size: 0.72rem; color: rgba(255,255,255,0.5);
+  font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+}
+.admin-input {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #fff; font-family: 'Kanit', sans-serif; font-size: 0.88rem;
+  outline: none; transition: all 0.2s; width: 100%; box-sizing: border-box;
+}
+.admin-input:focus {
+  border-color: rgba(255,180,0,0.4);
+  background: rgba(255,180,0,0.05);
+  box-shadow: 0 0 0 3px rgba(255,180,0,0.1);
+}
+.admin-input::placeholder { color: rgba(255,255,255,0.2); }
+
+/* ── Activity Log ── */
+.admin-log {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  padding: 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  max-height: 220px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+.admin-log-item {
+  display: flex; gap: 10px; padding: 4px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  line-height: 1.5;
+}
+.admin-log-item:last-child { border-bottom: none; }
+.admin-log-time { color: rgba(255,255,255,0.3); flex-shrink: 0; }
+.admin-log-msg  { color: rgba(255,255,255,0.6); }
+.admin-log-msg.ok  { color: #32c864; }
+.admin-log-msg.err { color: #ff7070; }
+.admin-log-msg.warn{ color: #ffb400; }
+.admin-log-msg.info{ color: #00d4ff; }
+
+/* ── Toggle Switch ── */
+.admin-toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px; padding: 12px 16px; margin-bottom: 10px;
+}
+.admin-toggle-label { font-size: 0.83rem; color: rgba(255,255,255,0.7); }
+.admin-toggle-desc  { font-size: 0.7rem;  color: rgba(255,255,255,0.3); margin-top: 2px; }
+.admin-toggle {
+  position: relative; width: 44px; height: 24px; flex-shrink: 0;
+}
+.admin-toggle input { opacity:0; width:0; height:0; }
+.admin-toggle-slider {
+  position: absolute; inset: 0;
+  background: rgba(255,255,255,0.12);
+  border-radius: 12px; cursor: pointer;
+  transition: all 0.25s;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.admin-toggle-slider::before {
+  content: ''; position: absolute;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: rgba(255,255,255,0.5);
+  top: 2px; left: 2px; transition: all 0.25s;
+}
+.admin-toggle input:checked + .admin-toggle-slider {
+  background: linear-gradient(135deg, #0062ff, #00b4ff);
+  border-color: rgba(0,180,255,0.3);
+}
+.admin-toggle input:checked + .admin-toggle-slider::before {
+  transform: translateX(20px); background: #fff;
+}
+
+/* ── Password change form ── */
+.admin-pw-form {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px; padding: 18px; margin-bottom: 16px;
+}
+.admin-pw-title {
+  font-size: 0.82rem; font-weight: 700; color: rgba(255,255,255,0.7);
+  margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+}
+
+/* ── Info Box ── */
+.admin-info-box {
+  background: rgba(0,212,255,0.06);
+  border: 1px solid rgba(0,212,255,0.15);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 0.77rem;
+  color: rgba(0,212,255,0.8);
+  margin-bottom: 14px;
+  line-height: 1.6;
+}
+.admin-warn-box {
+  background: rgba(255,180,0,0.06);
+  border: 1px solid rgba(255,180,0,0.2);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 0.77rem;
+  color: rgba(255,180,0,0.9);
+  margin-bottom: 14px;
+  line-height: 1.6;
+}
+.admin-danger-box {
+  background: rgba(255,60,60,0.06);
+  border: 1px solid rgba(255,60,60,0.2);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 0.77rem;
+  color: rgba(255,100,100,0.9);
+  margin-bottom: 14px;
+  line-height: 1.6;
+}
+
+/* ── Toast notification ── */
+.admin-toast {
+  position: fixed;
+  bottom: 28px; right: 28px;
+  z-index: 9999;
+  display: flex; align-items: center; gap: 10px;
+  background: linear-gradient(135deg, #0a1628, #0d1f38);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 14px 20px;
+  color: #fff; font-family: 'Kanit', sans-serif; font-size: 0.88rem;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  animation: toastIn 0.3s cubic-bezier(0.22,1,0.36,1);
+  max-width: 320px;
+}
+.admin-toast.toast-ok  { border-color: rgba(50,200,100,0.3); }
+.admin-toast.toast-err { border-color: rgba(255,60,60,0.3); }
+.admin-toast.toast-warn{ border-color: rgba(255,180,0,0.3); }
+@keyframes toastIn {
+  from { opacity:0; transform:translateY(12px) scale(0.95); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+.admin-toast.toast-out {
+  animation: toastOut 0.25s ease forwards;
+}
+@keyframes toastOut {
+  to { opacity:0; transform:translateY(6px) scale(0.97); }
+}
+
+/* ── Progress Bar ── */
+.admin-progress-wrap { margin-bottom: 16px; }
+.admin-progress-label {
+  display: flex; justify-content: space-between;
+  font-size: 0.72rem; color: rgba(255,255,255,0.4); margin-bottom: 6px;
+}
+.admin-progress-track {
+  height: 6px; background: rgba(255,255,255,0.06);
+  border-radius: 3px; overflow: hidden;
+}
+.admin-progress-fill {
+  height: 100%; border-radius: 3px;
+  background: linear-gradient(90deg, #0062ff, #00d4ff);
+  transition: width 1s cubic-bezier(0.22,1,0.36,1);
+}
+
+/* ── Permission modal reuse animations from login ── */
+@keyframes cardIn {
+  from { opacity:0; transform:translateY(20px) scale(0.97); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+
+/* ── Permission row hover ── */
+.perm-row-label:hover {
+  border-color: rgba(0,212,255,0.2) !important;
+  background: rgba(0,212,255,0.04) !important;
+}
