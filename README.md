@@ -67,3 +67,4 @@ kppl_v3/
 นำเข้าไฟล์ → parse → save_rows.php → MySQL → ทุกเครื่องเห็น
 Offline → localStorage → BUILTIN_DATA (490 records)
 ```
+# -Repository-Repository-name-kppl_v3
