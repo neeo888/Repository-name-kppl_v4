@@ -177,6 +177,30 @@ function renderLeaderboard(data) {
 }
 
 function buildTicker(data, fast, slow) {
+  // กรองข้อมูลตัววิ่ง (Ticker) ให้คำนวณจากไฟล์นำเข้าล่าสุดเท่านั้น
+  let tickerData = data;
+  let targetFile = window.lastImportedFile;
+  
+  if (!targetFile || targetFile === 'MySQL DB' || targetFile === 'ฐานข้อมูลว่าง') {
+    const files = data.map(d => d[5]).filter(f => f && f !== 'BUILTIN_DATA' && f !== 'admin_sync');
+    if (files.length) {
+      targetFile = files[files.length - 1];
+    }
+  }
+
+  if (targetFile) {
+    tickerData = data.filter(d => d[5] === targetFile);
+  }
+
+  // คำนวณอันดับความเร็วใหม่สำหรับไฟล์นำเข้าล่าสุดนี้โดยเฉพาะ
+  let tickerFast = fast;
+  let tickerSlow = slow;
+  if (typeof computeLeaderboard === 'function') {
+    const lb = computeLeaderboard(tickerData);
+    tickerFast = lb.fast;
+    tickerSlow = lb.slow;
+  }
+
   const now  = new Date();
   const items = [];
 
@@ -208,7 +232,7 @@ function buildTicker(data, fast, slow) {
   }
 
   // ── 1. งานที่ปิดใน 3 วันล่าสุด ──
-  const recentJobs = data.filter(r => {
+  const recentJobs = tickerData.filter(r => {
     if (!r[1]) return false;
     const d = new Date(r[1]);
     return !isNaN(d) && (now-d)/86400000 <= 3;
@@ -226,17 +250,17 @@ function buildTicker(data, fast, slow) {
 
   // ── 2. เชิดชู Top 3 Fast ──
   const medals = ['🥇','🥈','🥉'];
-  fast.forEach((r,i) => {
+  tickerFast.forEach((r,i) => {
     items.push(`<span class="t-item t-item-ok">${medals[i]} <strong>${r.ct}</strong> — ปิดงานรวดเร็ว! คะแนน ${r.score} ⭐ ยอดเยี่ยม!</span><span class="t-sep">◆</span>`);
   });
 
   // ── 3. เตือน Slow 3 ──
-  slow.forEach(r => {
+  tickerSlow.forEach(r => {
     items.push(`<span class="t-item t-item-warn">⚠️ <strong>${r.ct}</strong> — กรุณาเร่งดำเนินการ! เฉลี่ย ${r.avgInterval} วัน/งาน</span><span class="t-sep">◆</span>`);
   });
 
   // ── 4. Stats ──
-  items.push(`<span class="t-item t-item-info">📊 รวมทั้งหมด <strong>${data.length.toLocaleString()}</strong> งาน · ผู้รับจ้าง <strong>${new Set(data.map(r=>r[2])).size}</strong> ราย</span><span class="t-sep">◆</span>`);
+  items.push(`<span class="t-item t-item-info">📊 ไฟล์ล่าสุดมี <strong>${tickerData.length.toLocaleString()}</strong> งาน · ผู้รับจ้าง <strong>${new Set(tickerData.map(r=>r[2])).size}</strong> ราย</span><span class="t-sep">◆</span>`);
 
   // ซ้ำ content เพื่อให้วิ่งวนต่อเนื่อง (double content trick)
   const half = items.join('');

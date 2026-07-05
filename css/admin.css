@@ -28,6 +28,33 @@
 }
 .admin-trigger .admin-crown { font-size: 14px; }
 
+/* ── Logout Button ── */
+.logout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, rgba(255, 71, 87, 0.15), rgba(255, 30, 60, 0.08));
+  border: 1px solid rgba(255, 71, 87, 0.3);
+  border-radius: 8px;
+  color: #ff4757;
+  font-family: 'Kanit', sans-serif;
+  font-size: 0.78rem;
+  padding: 6px 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  box-shadow: 0 0 12px rgba(255, 71, 87, 0.1);
+  margin-left: 8px;
+  white-space: nowrap;
+}
+.logout-btn:hover {
+  background: linear-gradient(135deg, rgba(255, 71, 87, 0.25), rgba(255, 30, 60, 0.18));
+  border-color: rgba(255, 71, 87, 0.55);
+  box-shadow: 0 0 20px rgba(255, 71, 87, 0.2);
+  transform: translateY(-1px);
+}
+
 /* ── Panel Overlay ── */
 .admin-overlay {
   position: fixed;

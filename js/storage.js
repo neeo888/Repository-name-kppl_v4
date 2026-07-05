@@ -38,8 +38,22 @@ async function apiSaveRows(rows, fileName) {
  * @returns {Promise<{ok,rows,meta}|{ok:false,rows:[]}>}
  */
 async function apiLoadRows() {
-  const res = await fetch(`${API_BASE}/load_rows.php`, { cache: 'no-store' });
-  if (!res.ok) return { ok: false, rows: [] };
+  const sess = JSON.parse(localStorage.getItem('kppl_session') || '{}');
+  const params = new URLSearchParams();
+  if (sess.user)   params.append('user', sess.user);
+  if (sess.role)   params.append('role', sess.role);
+  if (sess.name)   params.append('name', sess.name);
+
+  const res = await fetch(`${API_BASE}/load_rows.php?${params.toString()}`, { cache: 'no-store' });
+  if (!res.ok) {
+    let txt = '';
+    try { txt = await res.text(); } catch(e) {}
+    let err = `HTTP ${res.status}`;
+    if (txt.includes('Could not find PHP executable') || txt.includes('Five Server')) {
+      err = 'Five Server error: Cannot find PHP. Please open http://localhost/kppl_v3 2/';
+    }
+    return { ok: false, rows: [], error: err };
+  }
   return res.json();
 }
 
@@ -102,11 +116,12 @@ function lsBootData() {
       // ✅ Server ตอบกลับสำเร็จ — ใช้ข้อมูลจาก MySQL เสมอ
       // (แม้จะว่าง = 0 rows ก็ตาม เพราะนั่นคือ "ข้อมูลจริง" บน server)
       allData = res.rows || [];
-      updateAll();
-
       const meta = res.meta || {};
       const cnt  = allData.length;
       const file = meta.lastFile   || (cnt ? 'MySQL DB' : 'ฐานข้อมูลว่าง');
+      window.lastImportedFile = file;
+      updateAll();
+
       const dt   = meta.lastImport || new Date().toISOString();
 
       dbRenderStatus({
@@ -235,14 +250,15 @@ function _detectColumns(rows) {
   const JOB_KW  = ['เลขที่งาน','เลขที่','jobid','job_id','job id','รหัสงาน','เลขงาน','ใบสั่งงาน','work no','order no'];
   const DATE_KW = ['วันที่','date','datetime','วัน','เวลา','ปิดงาน'];
   const CT_KW   = ['ผู้รับจ้าง','ช่าง','contractor','team','ทีม','หน่วยงาน','บริษัท','ผู้ดำเนินการ','มิสเตอร์'];
-  const NOTE_KW = ['หมายเหตุ','note','remark','วงเงิน','บันทึก','ประเภท','คาดการณ์'];
+  const NOTE_KW = ['หมายเหตุ','note','remark','บันทึก'];
+  const BUDGET_KW = ['วงเงิน','คาดการณ์','budget','ราคา'];
 
-  let headerRow = -1, colJobId = -1, colDate = -1, colContractor = -1, colNote = -1;
+  let headerRow = -1, colJobId = -1, colDate = -1, colContractor = -1, colNote = -1, colBudget = -1;
 
   // ── PASS 1: หา header row จาก keyword ──
   for (let i = 0; i < Math.min(25, rows.length); i++) {
     const row = rows[i] || [];
-    let jobHit = -1, dateHit = -1, ctHit = -1, noteHit = -1;
+    let jobHit = -1, dateHit = -1, ctHit = -1, noteHit = -1, budgetHit = -1;
     for (let c = 0; c < row.length; c++) {
       // ข้าม Date objects ใน header scan
       if (row[c] instanceof Date) continue;
@@ -252,11 +268,12 @@ function _detectColumns(rows) {
       if (dateHit < 0 && DATE_KW.some(k => cell.includes(k))) dateHit = c;
       if (ctHit   < 0 && CT_KW.some(k   => cell.includes(k))) ctHit   = c;
       if (noteHit < 0 && NOTE_KW.some(k => cell.includes(k))) noteHit = c;
+      if (budgetHit < 0 && BUDGET_KW.some(k => cell.includes(k))) budgetHit = c;
     }
-    const hits = [jobHit, dateHit, ctHit, noteHit].filter(x => x >= 0).length;
+    const hits = [jobHit, dateHit, ctHit, noteHit, budgetHit].filter(x => x >= 0).length;
     if (hits >= 2) {
       headerRow = i;
-      colJobId = jobHit; colDate = dateHit; colContractor = ctHit; colNote = noteHit;
+      colJobId = jobHit; colDate = dateHit; colContractor = ctHit; colNote = noteHit; colBudget = budgetHit;
       break;
     }
   }
@@ -314,14 +331,20 @@ function _detectColumns(rows) {
       colContractor = copy.indexOf(Math.max(...copy));
     }
     if (colNote < 0) {
-      const used = new Set([colJobId, colDate, colContractor]);
+      const used = new Set([colJobId, colDate, colContractor, colBudget]);
       for (let c = 0; c < maxCols; c++) {
         if (!used.has(c) && c >= 0) { colNote = c; break; }
       }
     }
+    if (colBudget < 0) {
+      const used = new Set([colJobId, colDate, colContractor, colNote]);
+      for (let c = 0; c < maxCols; c++) {
+        if (!used.has(c) && c >= 0) { colBudget = c; break; }
+      }
+    }
   }
 
-  return { headerRow, colJobId, colDate, colContractor, colNote };
+  return { headerRow, colJobId, colDate, colContractor, colNote, colBudget };
 }
 
 /* parser หลัก — ยืดหยุ่นทุกรูปแบบ */
@@ -331,7 +354,7 @@ function processRows(rows) {
   // normalize: แปลง null/undefined เป็น '' ทุก cell
   const norm = rows.map(r => Array.isArray(r) ? r : []);
 
-  const { headerRow, colJobId, colDate, colContractor, colNote } = _detectColumns(norm);
+  const { headerRow, colJobId, colDate, colContractor, colNote, colBudget } = _detectColumns(norm);
 
   const data    = [];
   const seenIds = new Set();
@@ -379,12 +402,15 @@ function processRows(rows) {
     // ── หมายเหตุ ──
     const note = (colNote >= 0 && row[colNote] != null) ? String(row[colNote]).trim() : '';
 
+    // ── วงเงิน (คาดการณ์) ──
+    const budget = (colBudget >= 0 && row[colBudget] != null) ? String(row[colBudget]).trim() : '';
+
     // ── de-duplicate ──
     const key = jobId + '|' + dt;
     if (seenIds.has(key)) continue;
     seenIds.add(key);
 
-    data.push([jobId, dt, contractor, note]);
+    data.push([jobId, dt, contractor, note, budget]);
   }
 
   return data;
@@ -471,6 +497,7 @@ function handleFile(file) {
           // ✅ อัพเดท allData ด้วยข้อมูลทั้งหมดจาก DB ทันที
           if (res.all_rows && res.all_rows.length) {
             allData = res.all_rows;
+            window.lastImportedFile = file.name;
             updateAll();
             lsSave(allData, file.name);
           }
@@ -807,7 +834,7 @@ function exportSQL(rows, fileName, forceAll = false) {
     : `Export ทั้งหมด (${newRows.length} รายการ)`;
 
   let sql = `-- ════════════════════════════════════════════════════════
--- database.sql — ฐานข้อมูลระบบติดตามเอกสารรอเบิกงานซ่อมท่อ
+-- database.sql — ฐานข้อมูลระบบติดตามเอกสารรอประมาณราคางานซ่อมท่อ
 -- กปภ.สาขาพิษณุโลก
 -- ════════════════════════════════════════════════════════
 -- นำเข้าจากไฟล์ : ${esc(fileName)}

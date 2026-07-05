@@ -61,7 +61,7 @@ try {
     _log("❌ Fetch error: " . $e->getMessage(), 'error');
 }
 
-if ($result['error']) {
+if (!empty($result['error'])) {
     _saveLog('error', 0, 0, $result['error']);
     _sendAlert($result['error']);
     if ($isCron) { echo "ERROR: " . $result['error'] . "\n"; exit(1); }

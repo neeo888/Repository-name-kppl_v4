@@ -76,7 +76,7 @@ async function runAIAnalysis(stats) {
     <div style="font-size:10px;color:var(--text3);margin-top:6px">Claude Sonnet กำลังวิเคราะห์…</div>`;
 
   // ── Prompt ──
-  const prompt = `คุณเป็น AI วิเคราะห์ข้อมูลระบบติดตามเอกสารรอเบิกงานซ่อมท่อ ของ กปภ.สาขาพิษณุโลก
+  const prompt = `คุณเป็น AI วิเคราะห์ข้อมูลระบบติดตามเอกสารรอประมาณราคางานซ่อมท่อ ของ กปภ.สาขาพิษณุโลก
 
 ข้อมูลปีงบประมาณ ${stats.fy} (ต.ค.${stats.fy-1} – ก.ย.${stats.fy}):
 - เอกสารทั้งหมดในปีงบฯ: ${stats.fyTotal} รายการ

@@ -12,6 +12,7 @@
 
   // ── User Store helpers ────────────────────────────────────────
   function _getUsers() {
+    if (window.cachedUsers) return window.cachedUsers;
     try {
       const raw = localStorage.getItem(USER_STORE);
       return raw ? JSON.parse(raw) : _defaultUsers();
@@ -78,7 +79,7 @@
       const s = localStorage.getItem('kppl_session');
       if (!s) return false;
       const obj = JSON.parse(s);
-      return obj && obj.ok && obj.user === ADMIN_USER;
+      return obj && obj.ok && (obj.user === ADMIN_USER || obj.role === 'admin');
     } catch { return false; }
   };
 
@@ -492,6 +493,7 @@
               <label>บทบาท (Role)</label>
               <select class="admin-input" id="newUserRole">
                 <option value="user">👤 ผู้ใช้ทั่วไป</option>
+                <option value="contractor">👷 ผู้รับจ้าง / ช่าง</option>
                 <option value="admin">👑 ผู้ดูแลระบบ</option>
               </select>
             </div>
@@ -847,89 +849,113 @@
 //  MEMBER MANAGEMENT
 // ════════════════════════════════════════════════════════════════
 
-window.adminRenderUsers = function () {
+window.adminRenderUsers = async function () {
   const el = document.getElementById('adminUserTable');
   if (!el) return;
 
-  const users = _getUsers();
-  if (!users.length) {
-    el.innerHTML = '<div class="admin-info-box">ยังไม่มีสมาชิก</div>';
-    return;
-  }
+  el.innerHTML = '<div class="admin-info-box">กำลังโหลดรายชื่อสมาชิก...</div>';
 
-  const rows = users.map((u, i) => {
-    const roleTag = u.role === 'admin'
-      ? `<span style="background:linear-gradient(135deg,#ffb400,#ff6400);color:#000;border-radius:5px;
-               padding:2px 8px;font-size:0.68rem;font-weight:800;letter-spacing:0.06em">👑 ADMIN</span>`
-      : `<span style="background:rgba(0,212,255,0.12);color:#00d4ff;border-radius:5px;
-               padding:2px 8px;font-size:0.68rem;font-weight:600">👤 USER</span>`;
+  try {
+    const res = await fetch('api/users.php');
+    const data = await res.json();
+    if (!data.success) {
+      el.innerHTML = `<div class="admin-info-box">${data.error || 'โหลดข้อมูลล้มเหลว'}</div>`;
+      return;
+    }
+    const users = data.users || [];
+    window.cachedUsers = users;
 
-    const approvedTag = u.approved
-      ? `<span style="color:#32c864;font-size:0.75rem">✅ อนุมัติแล้ว</span>`
-      : `<span style="color:#ff7070;font-size:0.75rem">⏳ รออนุมัติ</span>`;
+    if (!users.length) {
+      el.innerHTML = '<div class="admin-info-box">ยังไม่มีสมาชิก</div>';
+      return;
+    }
 
-    const isBuiltin = (u.user === '9235');
-    const actionBtns = isBuiltin
-      ? `<span style="font-size:0.7rem;color:rgba(255,255,255,0.2)">ล็อก</span>`
-      : `<div style="display:flex;gap:6px;flex-wrap:wrap">
-          ${!u.approved
-            ? `<button class="admin-btn admin-btn-success" style="padding:5px 10px;font-size:0.72rem"
-                 onclick="adminApproveUser('${u.user}')">✅ อนุมัติ</button>`
-            : `<button class="admin-btn admin-btn-ghost" style="padding:5px 10px;font-size:0.72rem"
-                 onclick="adminRevokeUser('${u.user}')">🚫 ระงับ</button>`}
-          <button class="admin-btn admin-btn-amber" style="padding:5px 10px;font-size:0.72rem"
-            onclick="adminToggleRole('${u.user}')">
-            ${u.role==='admin' ? '👤 ลด Role' : '👑 แต่งตั้ง Admin'}
-          </button>
-          <button class="admin-btn admin-btn-primary" style="padding:5px 10px;font-size:0.72rem;
-            background:rgba(80,100,255,0.18);border:1px solid rgba(80,100,255,0.35);color:#99aaff"
-            onclick="adminShowPermEditor('${u.user}')">🔐 สิทธิ์</button>
-          <button class="admin-btn" style="padding:5px 10px;font-size:0.72rem;
-            background:rgba(255,60,60,0.12);border:1px solid rgba(255,60,60,0.3);color:#ff7070"
-            onclick="adminDeleteUser('${u.user}')">🗑️</button>
-        </div>`;
+    const rows = users.map((u, i) => {
+      let roleTag = '';
+      if (u.role === 'admin') {
+        roleTag = `<span style="background:linear-gradient(135deg,#ffb400,#ff6400);color:#000;border-radius:5px;
+                 padding:2px 8px;font-size:0.68rem;font-weight:800;letter-spacing:0.06em">👑 ADMIN</span>`;
+      } else if (u.role === 'contractor') {
+        roleTag = `<span style="background:rgba(168,85,247,0.15);color:#c084fc;border-radius:5px;
+                 padding:2px 8px;font-size:0.68rem;font-weight:600">👷 CONTRACTOR</span>`;
+      } else {
+        roleTag = `<span style="background:rgba(0,212,255,0.12);color:#00d4ff;border-radius:5px;
+                 padding:2px 8px;font-size:0.68rem;font-weight:600">👤 USER</span>`;
+      }
 
-    return `
-      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);
-                  border-radius:10px;padding:14px 16px;margin-bottom:10px;
-                  transition:all 0.2s" class="admin-user-row">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
-          <div style="flex:1;min-width:0">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
-              <span style="font-size:0.92rem;font-weight:700;color:#fff">${u.name || u.user}</span>
-              ${roleTag}
-              ${approvedTag}
+      const approvedTag = u.approved
+        ? `<span style="color:#32c864;font-size:0.75rem">✅ อนุมัติแล้ว</span>`
+        : `<span style="color:#ff7070;font-size:0.75rem">⏳ รออนุมัติ</span>`;
+
+      const isBuiltin = (u.user === '9235');
+      const actionBtns = isBuiltin
+        ? `<span style="font-size:0.7rem;color:rgba(255,255,255,0.2)">ล็อก</span>`
+        : `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+            ${!u.approved
+              ? `<button class="admin-btn admin-btn-success" style="padding:5px 10px;font-size:0.72rem"
+                   onclick="adminApproveUser('${u.user}')">✅ อนุมัติ</button>`
+              : `<button class="admin-btn admin-btn-ghost" style="padding:5px 10px;font-size:0.72rem"
+                   onclick="adminRevokeUser('${u.user}')">🚫 ระงับ</button>`}
+            
+            <select class="admin-input" style="padding:4px 8px;font-size:0.72rem;width:110px;height:auto;margin:0"
+                    onchange="adminChangeRole('${u.user}', this.value)">
+              <option value="user" ${u.role === 'user' ? 'selected' : ''}>👤 User</option>
+              <option value="contractor" ${u.role === 'contractor' ? 'selected' : ''}>👷 Contractor</option>
+              <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>👑 Admin</option>
+            </select>
+
+            <button class="admin-btn admin-btn-primary" style="padding:5px 10px;font-size:0.72rem;
+              background:rgba(80,100,255,0.18);border:1px solid rgba(80,100,255,0.35);color:#99aaff"
+              onclick="adminShowPermEditor('${u.user}')">🔐 สิทธิ์</button>
+            <button class="admin-btn" style="padding:5px 10px;font-size:0.72rem;
+              background:rgba(255,60,60,0.12);border:1px solid rgba(255,60,60,0.3);color:#ff7070"
+              onclick="adminDeleteUser('${u.user}')">🗑️</button>
+          </div>`;
+
+      return `
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);
+                    border-radius:10px;padding:14px 16px;margin-bottom:10px;
+                    transition:all 0.2s" class="admin-user-row">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+                <span style="font-size:0.92rem;font-weight:700;color:#fff">${u.name || u.user}</span>
+                ${roleTag}
+                ${approvedTag}
+              </div>
+              <div style="display:flex;gap:16px;font-size:0.72rem;color:rgba(255,255,255,0.35);flex-wrap:wrap">
+                <span>👤 Username: <span style="color:rgba(255,255,255,0.6);font-family:'JetBrains Mono',monospace">${u.user}</span></span>
+                ${u.branch ? `<span>📍 สังกัด: <span style="color:rgba(255,255,255,0.6)">${u.branch}</span></span>` : ''}
+                ${u.createdAt ? `<span>📅 ${new Date(u.createdAt).toLocaleDateString('th-TH')}</span>` : ''}
+              </div>
             </div>
-            <div style="display:flex;gap:16px;font-size:0.72rem;color:rgba(255,255,255,0.35);flex-wrap:wrap">
-              <span>👤 <span style="color:rgba(255,255,255,0.6);font-family:'JetBrains Mono',monospace">${u.user}</span></span>
-              <span>🔑 <span style="color:rgba(255,255,255,0.4);font-family:'JetBrains Mono',monospace">${'•'.repeat(Math.min(u.pass.length,10))}</span></span>
-              ${u.createdAt ? `<span>📅 ${new Date(u.createdAt).toLocaleDateString('th-TH')}</span>` : ''}
-            </div>
+            <div style="flex-shrink:0">${actionBtns}</div>
           </div>
-          <div style="flex-shrink:0">${actionBtns}</div>
+        </div>`;
+    }).join('');
+
+    const pending = users.filter(u => !u.approved).length;
+    const adminCount = users.filter(u => u.role === 'admin').length;
+
+    el.innerHTML = `
+      <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+        <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
+                    border-radius:8px;padding:8px 14px;font-size:0.75rem;color:rgba(255,255,255,0.5)">
+          👥 สมาชิกทั้งหมด <strong style="color:#fff">${users.length}</strong>
         </div>
-      </div>`;
-  }).join('');
-
-  const pending = users.filter(u => !u.approved).length;
-  const adminCount = users.filter(u => u.role === 'admin').length;
-
-  el.innerHTML = `
-    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-      <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
-                  border-radius:8px;padding:8px 14px;font-size:0.75rem;color:rgba(255,255,255,0.5)">
-        👥 สมาชิกทั้งหมด <strong style="color:#fff">${users.length}</strong>
+        <div style="background:rgba(255,180,0,0.08);border:1px solid rgba(255,180,0,0.2);
+                    border-radius:8px;padding:8px 14px;font-size:0.75rem;color:rgba(255,180,0,0.8)">
+          👑 Admin <strong>${adminCount}</strong>
+        </div>
+        ${pending ? `<div style="background:rgba(255,60,60,0.1);border:1px solid rgba(255,60,60,0.25);
+                    border-radius:8px;padding:8px 14px;font-size:0.75rem;color:#ff9090">
+          ⏳ รออนุมัติ <strong>${pending}</strong>
+        </div>` : ''}
       </div>
-      <div style="background:rgba(255,180,0,0.08);border:1px solid rgba(255,180,0,0.2);
-                  border-radius:8px;padding:8px 14px;font-size:0.75rem;color:rgba(255,180,0,0.8)">
-        👑 Admin <strong>${adminCount}</strong>
-      </div>
-      ${pending ? `<div style="background:rgba(255,60,60,0.1);border:1px solid rgba(255,60,60,0.25);
-                  border-radius:8px;padding:8px 14px;font-size:0.75rem;color:#ff9090">
-        ⏳ รออนุมัติ <strong>${pending}</strong>
-      </div>` : ''}
-    </div>
-    ${rows}`;
+      ${rows}`;
+  } catch (err) {
+    el.innerHTML = `<div class="admin-info-box">เกิดข้อผิดพลาดในการโหลดสมาชิก: ${err.message}</div>`;
+  }
 };
 
 window.adminShowAddUser = function () {
@@ -953,66 +979,113 @@ window.adminAddUser = function () {
   if (!uname) { adminToast('กรุณากรอก Username', 'warn'); return; }
   if (!pass)  { adminToast('กรุณากรอก Password', 'warn'); return; }
 
-  const users = _getUsers();
-  if (users.find(u => u.user === uname)) {
-    adminToast(`Username "${uname}" มีอยู่แล้ว`, 'err'); return;
-  }
-
-  users.push({
-    user: uname, pass, role,
-    name: name || uname,
-    approved: true,   // admin เพิ่มเองถือว่าอนุมัติทันที
-    createdAt: new Date().toISOString(),
+  fetch('api/register.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      first_name: name || uname,
+      last_name: '',
+      employee_id: uname,
+      branch: 'กปภ.สาขาพิษณุโลก',
+      password: pass
+    })
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success) {
+      if (role !== 'user') {
+        fetch('api/users.php?action=change_role', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ employee_id: uname, role: role })
+        }).then(() => adminRenderUsers());
+      } else {
+        adminRenderUsers();
+      }
+      adminHideAddUser();
+      _addLog(`เพิ่มสมาชิก ${uname} (${role})`, 'ok');
+      adminToast(`เพิ่มสมาชิก "${uname}" สำเร็จ`, 'ok');
+    } else {
+      adminToast(res.error || 'เพิ่มสมาชิกล้มเหลว', 'err');
+    }
+  })
+  .catch(err => {
+    adminToast('เชื่อมต่อเซิร์ฟเวอร์ล้มเหลว', 'err');
   });
-  _saveUsers(users);
-  adminHideAddUser();
-  adminRenderUsers();
-  _addLog(`เพิ่มสมาชิก ${uname} (${role})`, 'ok');
-  adminToast(`เพิ่มสมาชิก "${uname}" สำเร็จ`, 'ok');
 };
 
 window.adminApproveUser = function (uname) {
-  const users = _getUsers();
-  const u = users.find(x => x.user === uname);
-  if (!u) return;
-  u.approved = true;
-  _saveUsers(users);
-  adminRenderUsers();
-  _addLog(`อนุมัติสมาชิก ${uname}`, 'ok');
-  adminToast(`อนุมัติ "${uname}" แล้ว`, 'ok');
+  fetch('api/users.php?action=toggle_approve', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ employee_id: uname, approved: 1 })
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success) {
+      adminRenderUsers();
+      _addLog(`อนุมัติสมาชิก ${uname}`, 'ok');
+      adminToast(`อนุมัติ "${uname}" แล้ว`, 'ok');
+    } else {
+      adminToast(res.error || 'ดำเนินการล้มเหลว', 'err');
+    }
+  });
 };
 
 window.adminRevokeUser = function (uname) {
-  const users = _getUsers();
-  const u = users.find(x => x.user === uname);
-  if (!u) return;
-  u.approved = false;
-  _saveUsers(users);
-  adminRenderUsers();
-  _addLog(`ระงับสมาชิก ${uname}`, 'warn');
-  adminToast(`ระงับ "${uname}" แล้ว`, 'warn');
+  fetch('api/users.php?action=toggle_approve', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ employee_id: uname, approved: 0 })
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success) {
+      adminRenderUsers();
+      _addLog(`ระงับสมาชิก ${uname}`, 'warn');
+      adminToast(`ระงับ "${uname}" แล้ว`, 'warn');
+    } else {
+      adminToast(res.error || 'ดำเนินการล้มเหลว', 'err');
+    }
+  });
 };
 
-window.adminToggleRole = function (uname) {
-  const users = _getUsers();
-  const u = users.find(x => x.user === uname);
-  if (!u) return;
-  u.role = u.role === 'admin' ? 'user' : 'admin';
-  _saveUsers(users);
-  adminRenderUsers();
-  const msg = u.role === 'admin' ? `แต่งตั้ง "${uname}" เป็น Admin` : `ลด Role "${uname}" เป็น User`;
-  _addLog(msg, u.role === 'admin' ? 'warn' : 'info');
-  adminToast(msg, 'ok');
+window.adminChangeRole = function (uname, newRole) {
+  fetch('api/users.php?action=change_role', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ employee_id: uname, role: newRole })
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success) {
+      adminRenderUsers();
+      const msg = `เปลี่ยน Role "${uname}" เป็น ${newRole}`;
+      _addLog(msg, newRole === 'admin' ? 'warn' : 'info');
+      adminToast(msg, 'ok');
+    } else {
+      adminToast(res.error || 'เปลี่ยน Role ล้มเหลว', 'err');
+    }
+  });
 };
 
 window.adminDeleteUser = function (uname) {
   if (!confirm(`ยืนยันลบสมาชิก "${uname}" ออกจากระบบ?`)) return;
-  let users = _getUsers();
-  users = users.filter(x => x.user !== uname);
-  _saveUsers(users);
-  adminRenderUsers();
-  _addLog(`ลบสมาชิก ${uname}`, 'warn');
-  adminToast(`ลบ "${uname}" แล้ว`, 'warn');
+  fetch('api/users.php?action=delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ employee_id: uname })
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success) {
+      adminRenderUsers();
+      _addLog(`ลบสมาชิก ${uname}`, 'warn');
+      adminToast(`ลบ "${uname}" แล้ว`, 'warn');
+    } else {
+      adminToast(res.error || 'ลบสมาชิกล้มเหลว', 'err');
+    }
+  });
 };
 
 // ════════════════════════════════════════════════════════════════

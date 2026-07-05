@@ -6,6 +6,8 @@
 // ════════════════════════════════
 //  TABLE
 // ════════════════════════════════
+let activeTableTab = 'all';
+
 function getMonLabel(dtStr) {
   if (!dtStr) return '';
   const d = new Date(dtStr);
@@ -14,7 +16,102 @@ function getMonLabel(dtStr) {
 }
 function inferType() { return 'ท่อรั่ว'; }
 
+function setTableTab(tab) {
+  activeTableTab = tab;
+  document.querySelectorAll('.table-tab').forEach(el => el.classList.remove('active'));
+  const activeEl = document.getElementById(`tab_${tab}`);
+  if (activeEl) activeEl.classList.add('active');
+
+  const titles = {
+    all: 'รายการทั้งหมด',
+    estimate: '1) รอประมาณราคา',
+    set: '2) รอจัดชุด',
+    my: '3) ชุดเบิกของฉัน'
+  };
+  const titleEl = document.getElementById('tableTitleText');
+  if (titleEl) titleEl.textContent = titles[tab] || 'รายการเอกสาร';
+
+  filterAndRender();
+}
+
+function updateTableTabBadges() {
+  if (!allData) return;
+  const countAll = allData.length;
+  const countEstimate = allData.filter(d => 
+    (d[3] || '').includes('รอประมาณราคา') || (d[3] || '').startsWith('1)') ||
+    (d[4] || '').includes('รอประมาณราคา') || (d[4] || '').startsWith('1)')
+  ).length;
+  const countSet = allData.filter(d => 
+    (d[3] || '').includes('รอจัดชุด') || (d[3] || '').startsWith('2)') ||
+    (d[4] || '').includes('รอจัดชุด') || (d[4] || '').startsWith('2)')
+  ).length;
+  const countMy = allData.filter(d => 
+    (d[3] || '').includes('ชุดเบิก') || (d[3] || '').includes('เบิกของฉัน') || (d[3] || '').startsWith('3)') ||
+    (d[4] || '').includes('ชุดเบิก') || (d[4] || '').includes('เบิกของฉัน') || (d[4] || '').startsWith('3)')
+  ).length;
+
+  const elAll = document.getElementById('tab_all_badge');
+  const elEstimate = document.getElementById('tab_estimate_badge');
+  const elSet = document.getElementById('tab_set_badge');
+  const elMy = document.getElementById('tab_my_badge');
+
+  if (elAll) elAll.textContent = countAll.toLocaleString();
+  if (elEstimate) elEstimate.textContent = countEstimate.toLocaleString();
+  if (elSet) elSet.textContent = countSet.toLocaleString();
+  if (elMy) elMy.textContent = countMy.toLocaleString();
+}
+
+window.activeDashboardFilter = null;
+
+window.setDashboardCardFilter = function(filterType) {
+  // If the user clicks 'contractors', scroll to the leaderboard
+  if (filterType === 'contractors') {
+    const el = document.querySelector('[data-section="leaderboard"]');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+  
+  // If the user clicks 'average', scroll to the analysis section
+  if (filterType === 'average') {
+    const el = document.querySelector('.expand-btn-row');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+  
+  // Set custom filter type
+  window.activeDashboardFilter = filterType;
+  
+  if (filterType === 'current_month') {
+    // Set month selector to current month
+    const now = new Date();
+    const currentMonthPrefix = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    const selMo = document.getElementById('filterMonth');
+    if (selMo) {
+      selMo.value = currentMonthPrefix;
+      document.getElementById('fMoWrap').classList.toggle('active', !!currentMonthPrefix);
+    }
+    window.activeDashboardFilter = null; // dropdown handles it
+  } else if (filterType === 'total_estimate') {
+    if (typeof clearFilters === 'function') {
+      clearFilters();
+    }
+    return;
+  }
+  
+  // Trigger filter and render
+  if (typeof filterAndRender === 'function') {
+    filterAndRender();
+  }
+  
+  // Scroll to table panel
+  const tableEl = document.querySelector('.panel');
+  if (tableEl) {
+    tableEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+};
+
 function clearFilters() {
+  window.activeDashboardFilter = null;
   ['filterContractor2','filterMonth','filterType','searchInput'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
@@ -23,6 +120,7 @@ function clearFilters() {
 }
 
 function filterAndRender() {
+  updateTableTabBadges();
   const search = document.getElementById('searchInput').value.toLowerCase();
   const ct     = document.getElementById('filterContractor2').value;
   const mo     = document.getElementById('filterMonth').value;
@@ -37,7 +135,52 @@ function filterAndRender() {
     const mCt  = !ct  || d[2]===ct;
     const mMo  = !mo  || (d[1]&&d[1].startsWith(mo));
     const mTyp = !typ;
-    return mSearch&&mCt&&mMo&&mTyp;
+
+    // Custom dashboard filter card click logic
+    let mCustom = true;
+    if (window.activeDashboardFilter) {
+      const now = new Date();
+      const currentFY = getFiscalYear();
+      const rDate = d[1] ? new Date(d[1]) : null;
+      
+      const getRowFY = (dateStr) => {
+        if (!dateStr) return null;
+        const dt = new Date(dateStr);
+        if (isNaN(dt)) return null;
+        const y = dt.getFullYear();
+        const m = dt.getMonth();
+        return m >= 9 ? y + 1 + 543 : y + 543;
+      };
+
+      if (window.activeDashboardFilter === 'pending_estimate') {
+        mCustom = d[5] === window.lastImportedFile;
+      } else if (window.activeDashboardFilter === 'kpi_total' || window.activeDashboardFilter === 'kpi_forecast' || window.activeDashboardFilter === 'kpi_success') {
+        mCustom = getRowFY(d[1]) === currentFY;
+      } else if (window.activeDashboardFilter === 'kpi_rate') {
+        const currentMonthPrefix = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+        mCustom = d[1] && d[1].startsWith(currentMonthPrefix);
+      } else if (window.activeDashboardFilter === 'kpi_carryover') {
+        mCustom = getRowFY(d[1]) === currentFY && rDate && (now - rDate) / 86400000 > 30;
+      } else if (window.activeDashboardFilter === 'estimated_today') {
+        const todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+        mCustom = d[1] && d[1].startsWith(todayStr);
+      }
+    }
+
+    // Tab filter
+    let mTab = true;
+    if (activeTableTab === 'estimate') {
+      mTab = (d[3] || '').includes('รอประมาณราคา') || (d[3] || '').startsWith('1)') ||
+             (d[4] || '').includes('รอประมาณราคา') || (d[4] || '').startsWith('1)');
+    } else if (activeTableTab === 'set') {
+      mTab = (d[3] || '').includes('รอจัดชุด') || (d[3] || '').startsWith('2)') ||
+             (d[4] || '').includes('รอจัดชุด') || (d[4] || '').startsWith('2)');
+    } else if (activeTableTab === 'my') {
+      mTab = (d[3] || '').includes('ชุดเบิก') || (d[3] || '').includes('เบิกของฉัน') || (d[3] || '').startsWith('3)') ||
+             (d[4] || '').includes('ชุดเบิก') || (d[4] || '').includes('เบิกของฉัน') || (d[4] || '').startsWith('3)');
+    }
+
+    return mSearch&&mCt&&mMo&&mTyp&&mTab&&mCustom;
   });
 
   if (sortCol>=0) {
@@ -61,18 +204,36 @@ function renderTable() {
   document.getElementById('tableCount').textContent=total.toLocaleString()+' rows';
   document.getElementById('pageInfo').textContent=`แสดง ${start+1}–${Math.min(start+PAGE,total)} จาก ${total}`;
 
-  if (!slice.length) { tbody.innerHTML='<tr><td colspan="5" class="no-data">ไม่พบข้อมูล</td></tr>'; renderPager(0); return; }
+  if (!slice.length) { tbody.innerHTML='<tr><td colspan="6" class="no-data">ไม่พบข้อมูล</td></tr>'; renderPager(0); return; }
 
   tbody.innerHTML = slice.map((d,i)=>{
     const num  = String(start+i+1).padStart(3,'0');
     const ctag = CT_COLORS[d[2]]||{bg:'rgba(100,116,139,0.1)',color:'#7aa8cc'};
-    const mo   = getMonLabel(d[1]);
+    const closeDate = d[1] ? d[1].slice(0, 19) : '—';
+    
+    // Check if d[4] contains budget, fallback to parsing d[3] if undefined
+    let budget = '0';
+    if (d[4] !== undefined) {
+      const val = d[4].replace(/,/g, '').trim();
+      if (!isNaN(val) && val !== '') {
+        budget = parseFloat(val).toLocaleString();
+      } else {
+        budget = d[4] || '0';
+      }
+    } else if (d[3]) {
+      const match = d[3].match(/^\d+$/);
+      if (match) {
+        budget = parseInt(match[0]).toLocaleString();
+      }
+    }
+
     return `<tr>
       <td><span class="seq-num">${num}</span></td>
       <td><span class="job-id">${d[0]||'—'}</span></td>
-      <td><span class="type-pill t-red">${inferType(d[0])}</span></td>
+      <td><span class="date-cell" style="font-family:var(--mono);font-size:11px">${closeDate}</span></td>
       <td><span class="ct-badge" style="background:${ctag.bg};color:${ctag.color}">${d[2]||'—'}</span></td>
-      <td><span class="mo-cell">${mo||'—'}</span></td>
+      <td><span class="budget-cell" style="font-family:var(--mono);font-weight:600;color:var(--text)">${budget}</span></td>
+      <td><span class="note-cell" style="font-size:12px;color:var(--text2)">${d[3]||'—'}</span></td>
     </tr>`;
   }).join('');
 
@@ -97,7 +258,7 @@ function goPage(p){ currentPage=p; renderTable(); }
 function sortTable(col){
   if(sortCol===col) sortDir*=-1; else{sortCol=col;sortDir=1;}
   const th=document.getElementById('thDate');
-  if(th) th.textContent=sortCol===1?`เดือน ${sortDir===1?'↑':'↓'}`:'เดือน ↕';
+  if(th) th.textContent=sortCol===1?`วันที่ปิดงาน ${sortDir===1?'↑':'↓'}`:'วันที่ปิดงาน ↕';
   renderTable();
 }
 
@@ -157,21 +318,26 @@ function exportTableExcel() {
 
   // Header rows
   const wsData = [
-    ['ระบบติดตามเอกสารรอเบิกงานซ่อมท่อ — กปภ.สาขาพิษณุโลก'],
+    ['ระบบติดตามเอกสารรอประมาณราคางานซ่อมท่อ — กปภ.สาขาพิษณุโลก'],
     [`ส่งออกเมื่อ: ${fmtDateThai(now.toISOString())} ${p(now.getHours())}:${p(now.getMinutes())} น.   ·   ตัวกรอง: ${getFilterLabel()}   ·   จำนวน: ${rows.length} รายการ`],
     [], // blank row
-    ['#', 'รหัสงาน (CC)', 'วันที่ปิดงาน', 'เวลา', 'ช่าง / บริษัท', 'ประเภทงาน', 'หมายเหตุ'],
+    ['#', 'เลขที่งาน', 'วันที่ปิดงาน', 'ผู้รับจ้าง/มิสเตอร์', 'วงเงิน (คาดการณ์)', 'บันทึก'],
   ];
 
   rows.forEach((r, i) => {
-    const typ = inferType ? inferType(r[0]) : (r[3] || '—');
+    let budget = 0;
+    if (r[3]) {
+      const match = r[3].match(/^\d+$/);
+      if (match) {
+        budget = parseInt(match[0]);
+      }
+    }
     wsData.push([
       i + 1,
       r[0] || '—',
-      fmtDateThai(r[1]),
-      fmtTimeThai(r[1]),
-      shortName(r[2] || '—'),
-      typ,
+      r[1] ? r[1].slice(0, 19) : '—',
+      r[2] || '—',
+      budget,
       r[3] || '',
     ]);
   });
@@ -180,13 +346,13 @@ function exportTableExcel() {
 
   // Column widths
   ws['!cols'] = [
-    {wch:6}, {wch:26}, {wch:20}, {wch:8}, {wch:22}, {wch:14}, {wch:20}
+    {wch:6}, {wch:26}, {wch:22}, {wch:26}, {wch:18}, {wch:30}
   ];
 
   // Merge title row
   ws['!merges'] = [
-    { s:{r:0,c:0}, e:{r:0,c:6} },
-    { s:{r:1,c:0}, e:{r:1,c:6} },
+    { s:{r:0,c:0}, e:{r:0,c:5} },
+    { s:{r:1,c:0}, e:{r:1,c:5} },
   ];
 
   XLSX.utils.book_append_sheet(wb, ws, 'รายการเอกสาร');
@@ -206,20 +372,20 @@ function exportTablePDF() {
   const stampThai = `${p(now.getDate())} ${MONTHS_TH_FULL[now.getMonth()]} ${now.getFullYear()+543}  ${p(now.getHours())}:${p(now.getMinutes())} น.`;
 
   const tableRows = rows.map((r, i) => {
-    const typ = inferType ? inferType(r[0]) : (r[3] || '—');
-    const badgeColor = {
-      'ท่อรั่ว':'#f472b6','ท่อแตก':'#ff6b7a','ท่ออุด':'#fbbf24','อื่นๆ':'#94a3b8'
-    }[typ] || '#94a3b8';
+    let budget = '0';
+    if (r[3]) {
+      const match = r[3].match(/^\d+$/);
+      if (match) {
+        budget = parseInt(match[0]).toLocaleString();
+      }
+    }
     return `<tr>
       <td style="text-align:center;color:#64748b">${i+1}</td>
       <td style="font-family:monospace;font-size:11px;color:#00c8ff">${r[0]||'—'}</td>
-      <td>${fmtDateThai(r[1])}</td>
-      <td style="text-align:center;font-family:monospace;font-size:11px">${fmtTimeThai(r[1])}</td>
-      <td>${shortName(r[2]||'—')}</td>
-      <td style="text-align:center">
-        <span style="background:${badgeColor}22;color:${badgeColor};border:1px solid ${badgeColor}55;
-          padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">${typ}</span>
-      </td>
+      <td style="font-family:monospace;font-size:11px">${r[1] ? r[1].slice(0,19) : '—'}</td>
+      <td>${r[2]||'—'}</td>
+      <td style="font-family:monospace;font-size:11px;text-align:right">${budget}</td>
+      <td style="color:#475569">${r[3]||'—'}</td>
     </tr>`;
   }).join('');
 
@@ -250,7 +416,7 @@ function exportTablePDF() {
     </style>
   </head><body>
     <div class="header">
-      <div class="title">ระบบติดตามเอกสารรอเบิกงานซ่อมท่อ<br>กปภ.สาขาพิษณุโลก</div>
+      <div class="title">ระบบติดตามเอกสารรอประมาณราคางานซ่อมท่อ<br>กปภ.สาขาพิษณุโลก</div>
       <div class="subtitle">PIPE REPAIR DOCUMENT TRACKING · PROVINCIAL WATERWORKS AUTHORITY</div>
       <div class="meta">
         <div class="meta-item">📅 วันที่พิมพ์: <strong>${stampThai}</strong></div>
@@ -261,15 +427,15 @@ function exportTablePDF() {
     <table>
       <thead><tr>
         <th style="width:40px">#</th>
-        <th style="width:22%">รหัสงาน (CC)</th>
-        <th style="width:18%">วันที่ปิดงาน</th>
-        <th style="width:8%">เวลา</th>
-        <th>ช่าง / บริษัท</th>
-        <th style="width:10%">ประเภทงาน</th>
+        <th style="width:20%">เลขที่งาน</th>
+        <th style="width:22%">วันที่ปิดงาน</th>
+        <th style="width:22%">ผู้รับจ้าง/มิสเตอร์</th>
+        <th style="width:14%">วงเงิน (คาดการณ์)</th>
+        <th>บันทึก</th>
       </tr></thead>
       <tbody>${tableRows}</tbody>
     </table>
-    <div class="footer">ส่งออกจากระบบติดตามเอกสารรอเบิกงานซ่อมท่อ กปภ.สาขาพิษณุโลก · ${stampThai}</div>
+    <div class="footer">ส่งออกจากระบบติดตามเอกสารรอประมาณราคางานซ่อมท่อ กปภ.สาขาพิษณุโลก · ${stampThai}</div>
     <script>window.onload=()=>{ window.print(); window.onafterprint=()=>window.close(); }<\/script>
   </body></html>`;
 

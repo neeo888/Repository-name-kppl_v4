@@ -11,16 +11,42 @@
  */
 require_once __DIR__ . '/config.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') jsonOut(['error'=>'GET only'],405);
+if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] !== 'GET') jsonOut(['error'=>'GET only'],405);
 
 try {
     $db = getDB();   // ถ้า connect ไม่ได้ → throw → ok:false
 
-    $rows = $db->query("
-        SELECT `job_id`, `job_date`, `contractor`, `note`
-        FROM   `pipe_repair_docs`
-        ORDER  BY `job_date` ASC, `id` ASC
-    ")->fetchAll(PDO::FETCH_NUM);
+    $role = $_GET['role'] ?? '';
+    $name = $_GET['name'] ?? '';
+
+    if ($role === 'contractor' && !empty($name)) {
+        $parts = array_filter(explode(' ', $name));
+        $where = [];
+        $params = [];
+        foreach ($parts as $part) {
+            $where[] = "`contractor` LIKE ?";
+            $params[] = "%" . $part . "%";
+        }
+        
+        $sql = "
+            SELECT `job_id`, `job_date`, `contractor`, `note`, `budget`, `source_file`
+            FROM   `pipe_repair_docs`
+        ";
+        if (!empty($where)) {
+            $sql .= " WHERE " . implode(" OR ", $where);
+        }
+        $sql .= " ORDER BY `job_date` ASC, `id` ASC";
+        
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(PDO::FETCH_NUM);
+    } else {
+        $rows = $db->query("
+            SELECT `job_id`, `job_date`, `contractor`, `note`, `budget`, `source_file`
+            FROM   `pipe_repair_docs`
+            ORDER  BY `job_date` ASC, `id` ASC
+        ")->fetchAll(PDO::FETCH_NUM);
+    }
 
     // แปลง null/datetime → string ให้ JS ใช้ได้
     $rows = array_map(function($r) {
@@ -29,6 +55,8 @@ try {
             $r[1] ? substr((string)$r[1], 0, 19) : '',  // "Y-m-d H:i:s"
             (string)($r[2] ?? ''),
             (string)($r[3] ?? ''),
+            (string)($r[4] ?? ''),
+            (string)($r[5] ?? ''),
         ];
     }, $rows);
 
@@ -51,7 +79,7 @@ try {
         ],
     ]);
 
-} catch (PDOException $e) {
+} catch (Throwable $e) {
     // เชื่อม DB ไม่ได้เลย → ok:false → JS จะ fallback localStorage
     http_response_code(200);   // ยังคืน 200 เพื่อให้ JS อ่าน JSON ได้
     header('Content-Type: application/json; charset=utf-8');

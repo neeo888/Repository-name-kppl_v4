@@ -6,7 +6,7 @@
  */
 require_once __DIR__ . '/config.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') jsonOut(['error'=>'POST only'],405);
+if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] !== 'POST') jsonOut(['error'=>'POST only'],405);
 
 $body = json_decode(file_get_contents('php://input'), true);
 if (!$body) jsonOut(['error'=>'Invalid JSON'],400);
@@ -23,8 +23,8 @@ try {
 
     $stmt = $db->prepare("
         INSERT IGNORE INTO `pipe_repair_docs`
-            (`job_id`,`job_date`,`contractor`,`note`,`imported_at`,`source_file`)
-        VALUES (:jid,:jdt,:ct,:nt,:at,:sf)
+            (`job_id`,`job_date`,`contractor`,`note`,`budget`,`imported_at`,`source_file`)
+        VALUES (:jid,:jdt,:ct,:nt,:bg,:at,:sf)
     ");
 
     $added = 0;
@@ -52,6 +52,7 @@ try {
             ':jdt' => $jdt,
             ':ct'  => mb_substr((string)($r[2]??''),0,120),
             ':nt'  => mb_substr((string)($r[3]??''),0,255),
+            ':bg'  => mb_substr((string)($r[4]??''),0,100),
             ':at'  => $now,
             ':sf'  => mb_substr($fileName,0,255),
         ]);
@@ -64,12 +65,12 @@ try {
 
     // log
     $db->prepare("INSERT INTO `import_log`
-        (`file_name`,`rows_in`,`rows_added`,`rows_dup`,`ip`) VALUES (?,?,?,?,?)")
+        (`file_name`,`rows_total`,`rows_added`,`rows_dup`,`ip_address`) VALUES (?,?,?,?,?)")
        ->execute([$fileName, count($rows), $added, $dup, $ip]);
 
     // ── ส่ง ALL rows กลับ เพื่อ sync ทันที ──
     $allRows = $db->query("
-        SELECT `job_id`,`job_date`,`contractor`,`note`
+        SELECT `job_id`,`job_date`,`contractor`,`note`,`budget`,`source_file`
         FROM   `pipe_repair_docs`
         ORDER  BY `job_date` ASC, `id` ASC
     ")->fetchAll(PDO::FETCH_NUM);
@@ -80,6 +81,8 @@ try {
             $r[1] ? substr((string)$r[1],0,19) : '',
             (string)($r[2]??''),
             (string)($r[3]??''),
+            (string)($r[4]??''),
+            (string)($r[5]??''),
         ];
     }, $allRows);
 

@@ -2,7 +2,7 @@
 /**
  * กปภ.พิษณุโลก — Database Configuration
  */
-define('DB_HOST',    'localhost');
+define('DB_HOST',    '127.0.0.1');
 define('DB_PORT',    '3306');
 define('DB_NAME',    'reg10_1');
 define('DB_USER',    'reg10_1');
@@ -33,7 +33,7 @@ function jsonOut(array $data, int $status = 200): void {
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     header('Access-Control-Allow-Origin: ' . ALLOWED_ORIGIN);
     header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
     header('Access-Control-Allow-Headers: Content-Type, X-Requested-With');

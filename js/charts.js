@@ -302,11 +302,30 @@ function moLabelShort(k) {
 }
 
 function updateAll() {
-  if (!allData.length) return;
+  const total = allData.length;
+
+  // Pending Estimate Card & Top-Bar Count (Count from the latest imported file)
+  let countEstimate = 0;
+  let targetFile = window.lastImportedFile;
+  if (!targetFile || targetFile === 'MySQL DB' || targetFile === 'ฐานข้อมูลว่าง') {
+    const files = allData.map(d => d[5]).filter(f => f && f !== 'BUILTIN_DATA' && f !== 'admin_sync');
+    if (files.length) {
+      targetFile = files[files.length - 1];
+    }
+  }
+  if (targetFile) {
+    countEstimate = allData.filter(d => d[5] === targetFile).length;
+  }
+
+  const pendingCountEl = document.getElementById('uibPendingCount');
+  if (pendingCountEl) {
+    pendingCountEl.textContent = countEstimate.toLocaleString();
+  }
+
+  if (!total) return;
   const now = new Date();
 
   // ── Stats ──
-  const total = allData.length;
   const ctSet = [...new Set(allData.map(d=>d[2]).filter(Boolean))];
   const ctCounts = {};
   allData.forEach(d=>{ if(d[2]) ctCounts[d[2]]=(ctCounts[d[2]]||0)+1; });
@@ -320,6 +339,25 @@ function updateAll() {
   // Show FY total vs grand total
   const _fyTotalNow = (allFYData(allData)[getFiscalYear()]||[]).length;
   document.getElementById('statTotalSub').textContent = `FY นี้: ${_fyTotalNow} | รวมทั้งหมด: ${total.toLocaleString()}`;
+
+  const elPendingEst = document.getElementById('statPendingEstimate');
+  const elPendingEstSub = document.getElementById('statPendingEstimateSub');
+  if (elPendingEst) elPendingEst.textContent = countEstimate.toLocaleString();
+  if (elPendingEstSub) {
+    elPendingEstSub.textContent = targetFile ? `จากไฟล์: ${targetFile}` : 'จากไฟล์นำเข้าล่าสุด';
+  }
+
+  const todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+  const estTodayCnt = allData.filter(d => d[1] && d[1].startsWith(todayStr)).length;
+  const elEstToday = document.getElementById('statEstimatedToday');
+  const elEstTodaySub = document.getElementById('statEstimatedTodaySub');
+  if (elEstToday) elEstToday.textContent = estTodayCnt.toLocaleString();
+  if (elEstTodaySub) {
+    const monthsTh = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    const thaiYear = now.getFullYear() + 543;
+    elEstTodaySub.textContent = `ณ วันที่ ${now.getDate()} ${monthsTh[now.getMonth()]} ${thaiYear}`;
+  }
+
   document.getElementById('statContractors').textContent = ctSet.length;
   document.getElementById('statTopContractor').textContent = topCt ? `มากสุด: ${shortName(topCt[0])}` : '—';
   document.getElementById('statThisMonth').textContent = thisMonthCnt;

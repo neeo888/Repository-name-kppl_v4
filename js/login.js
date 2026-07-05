@@ -1,13 +1,11 @@
 /* ═══════════════════════════════════════════════════════════════
    กปภ.พิษณุโลก — js/login.js
-   Login gate: จำ session ไว้ถ้าไม่ logout
+   Login & Registration Gate via Local MySQL Database
    ═══════════════════════════════════════════════════════════════ */
 
 (function () {
-  // ── Credentials — โหลดจาก localStorage (ถ้ามี) ──────────────
   const SESSION_KEY   = 'kppl_session';
-  const USER_STORE    = 'kppl_users';
-  const REMEMBER_KEY  = 'kppl_remember';  // เก็บ username+password ที่จำไว้
+  const REMEMBER_KEY  = 'kppl_remember';
 
   // ── Remember Me helpers ──────────────────────────────────────
   function saveRemember(u, p) {
@@ -25,41 +23,24 @@
     localStorage.removeItem(REMEMBER_KEY);
   }
 
-  // ── default fallback ถ้ายังไม่เคย init
-  const DEFAULT_USERS = [
-    { user:'9235',  pass:'A19070719a', role:'admin', approved:true },
-    { user:'admin', pass:'admin',      role:'user',  approved:true },
-  ];
-
-  function _getUsers() {
-    try {
-      const raw = localStorage.getItem(USER_STORE);
-      return raw ? JSON.parse(raw) : DEFAULT_USERS;
-    } catch { return DEFAULT_USERS; }
-  }
-
-  // admin.js เรียกฟังก์ชันนี้เมื่อบันทึกสมาชิกใหม่
-  window._syncLoginUsers = function(users) {
-    // ไม่ต้องทำอะไร — _getUsers() ดึงจาก localStorage ทุกครั้งอยู่แล้ว
-  };
-
   // ── Check existing session ────────────────────────────────────
   function isLoggedIn() {
     try {
       const s = localStorage.getItem(SESSION_KEY);
       if (!s) return false;
       const obj = JSON.parse(s);
-      // session ไม่หมดอายุ (ไม่กำหนด expire)
       return obj && obj.ok === true;
     } catch { return false; }
   }
 
-  function saveSession(u, role) {
+  function saveSession(u, role, branch, name) {
     localStorage.setItem(SESSION_KEY, JSON.stringify({
-      ok:   true,
-      at:   Date.now(),
-      user: u,
-      role: role || 'user',
+      ok:     true,
+      at:     Date.now(),
+      user:   u,
+      role:   role || 'user',
+      branch: branch || '',
+      name:   name || ''
     }));
   }
 
@@ -100,7 +81,138 @@
     target.parentNode.insertBefore(btn, target.nextSibling);
   }
 
-  // ── Login action ──────────────────────────────────────────────
+  // ── Tab switcher ──────────────────────────────────────────────
+  window.switchLoginTab = function(tabName) {
+    const tabSignIn = document.getElementById('tabSignIn');
+    const tabSignUp = document.getElementById('tabSignUp');
+    const formSignIn = document.getElementById('formSignIn');
+    const formSignUp = document.getElementById('formSignUp');
+    
+    // Clear errors
+    const errBoxLogin = document.getElementById('loginError');
+    const errBoxReg = document.getElementById('regError');
+    if (errBoxLogin) errBoxLogin.style.display = 'none';
+    if (errBoxReg) errBoxReg.style.display = 'none';
+    
+    if (tabName === 'signin') {
+      if (tabSignIn) tabSignIn.classList.add('active');
+      if (tabSignUp) tabSignUp.classList.remove('active');
+      if (formSignIn) formSignIn.style.display = 'flex';
+      if (formSignUp) formSignUp.style.display = 'none';
+    } else {
+      if (tabSignIn) tabSignIn.classList.remove('active');
+      if (tabSignUp) tabSignUp.classList.add('active');
+      if (formSignIn) formSignIn.style.display = 'none';
+      if (formSignUp) formSignUp.style.display = 'flex';
+    }
+  };
+
+  // ── Registration submit action ────────────────────────────────
+  window.doRegister = function() {
+    const regFirst = document.getElementById('regFirst');
+    const regLast = document.getElementById('regLast');
+    const regEmpId = document.getElementById('regEmpId');
+    const regBranch = document.getElementById('regBranch');
+    const regPass = document.getElementById('regPass');
+    const regPassConfirm = document.getElementById('regPassConfirm');
+    
+    const errBox = document.getElementById('regError');
+    const errMsg = document.getElementById('regErrorMsg');
+    const btn = document.getElementById('regBtn');
+    
+    if (errBox) errBox.style.display = 'none';
+    
+    const first = (regFirst.value || '').trim();
+    const last = (regLast.value || '').trim();
+    const empId = (regEmpId.value || '').trim();
+    const branch = regBranch.value;
+    const pass = regPass.value;
+    const passConfirm = regPassConfirm.value;
+    
+    if (!first || !last || !empId || !branch || !pass || !passConfirm) {
+      if (errMsg) errMsg.textContent = 'กรุณากรอกข้อมูลให้ครบถ้วนทุกช่อง';
+      if (errBox) errBox.style.display = 'flex';
+      return;
+    }
+    
+    if (pass.length < 6) {
+      if (errMsg) errMsg.textContent = 'รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร';
+      if (errBox) errBox.style.display = 'flex';
+      return;
+    }
+    
+    if (pass !== passConfirm) {
+      if (errMsg) errMsg.textContent = 'รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน';
+      if (errBox) errBox.style.display = 'flex';
+      return;
+    }
+    
+    // Loading state
+    if (btn) {
+      btn.classList.add('loading');
+      btn.disabled = true;
+      const btnText = btn.querySelector('.login-btn-text');
+      if (btnText) btnText.textContent = 'กำลังลงทะเบียน...';
+    }
+    
+    // Call Register API
+    fetch('api/register.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        first_name: first,
+        last_name: last,
+        employee_id: empId,
+        branch: branch,
+        password: pass
+      })
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (btn) {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+        const btnText = btn.querySelector('.login-btn-text');
+        if (btnText) btnText.textContent = 'ลงทะเบียน';
+      }
+      
+      if (res.success) {
+        alert('🎉 ลงทะเบียนสำเร็จเรียบร้อยแล้ว!\nระบบเปิดใช้งานและอนุมัติสิทธิ์ให้ท่านเรียบร้อย สามารถเข้าสู่ระบบได้ทันที');
+        
+        // Reset form
+        regFirst.value = '';
+        regLast.value = '';
+        regEmpId.value = '';
+        regBranch.selectedIndex = 0;
+        regPass.value = '';
+        regPassConfirm.value = '';
+        
+        // Switch to signin tab and pre-fill user ID
+        switchLoginTab('signin');
+        const loginUser = document.getElementById('loginUser');
+        if (loginUser) {
+          loginUser.value = empId;
+          const loginPass = document.getElementById('loginPass');
+          if (loginPass) loginPass.focus();
+        }
+      } else {
+        if (errMsg) errMsg.textContent = res.error || 'การลงทะเบียนล้มเหลว';
+        if (errBox) errBox.style.display = 'flex';
+      }
+    })
+    .catch(err => {
+      if (btn) {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+        const btnText = btn.querySelector('.login-btn-text');
+        if (btnText) btnText.textContent = 'ลงทะเบียน';
+      }
+      if (errMsg) errMsg.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์';
+      if (errBox) errBox.style.display = 'flex';
+    });
+  };
+
+  // ── Login submit action ───────────────────────────────────────
   window.doLogin = function () {
     const userEl  = document.getElementById('loginUser');
     const passEl  = document.getElementById('loginPass');
@@ -114,35 +226,49 @@
     const p = passEl.value || '';
 
     // clear errors
-    errBox.style.display = 'none';
-    fUser.classList.remove('error');
-    fPass.classList.remove('error');
+    if (errBox) errBox.style.display = 'none';
+    if (fUser) fUser.classList.remove('error');
+    if (fPass) fPass.classList.remove('error');
 
     // validate
     if (!u) {
-      fUser.classList.add('error');
-      errMsg.textContent = 'กรุณากรอกชื่อผู้ใช้';
-      errBox.style.display = 'flex';
+      if (fUser) fUser.classList.add('error');
+      if (errMsg) errMsg.textContent = 'กรุณากรอกรหัสพนักงาน';
+      if (errBox) errBox.style.display = 'flex';
       userEl.focus();
       return;
     }
     if (!p) {
-      fPass.classList.add('error');
-      errMsg.textContent = 'กรุณากรอกรหัสผ่าน';
-      errBox.style.display = 'flex';
+      if (fPass) fPass.classList.add('error');
+      if (errMsg) errMsg.textContent = 'กรุณากรอกรหัสผ่าน';
+      if (errBox) errBox.style.display = 'flex';
       passEl.focus();
       return;
     }
 
     // loading state
-    btn.classList.add('loading');
-    btn.querySelector('.login-btn-text').textContent = 'กำลังตรวจสอบ...';
+    if (btn) {
+      btn.classList.add('loading');
+      btn.disabled = true;
+      const btnText = btn.querySelector('.login-btn-text');
+      if (btnText) btnText.textContent = 'กำลังตรวจสอบ...';
+    }
 
-    setTimeout(() => {
-      const users = _getUsers();
-      const matched = users.find(x => x.user === u && x.pass === p);
-      if (matched && matched.approved !== false) {
-        // จดจำ หรือ ล้าง
+    // Fetch login API
+    fetch('api/login.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ employee_id: u, password: p })
+    })
+    .then(r => {
+      if (!r.ok) {
+        return r.text().then(t => { throw new Error(t); });
+      }
+      return r.json();
+    })
+    .then(res => {
+      if (res.success) {
+        // Handle Remember Me
         const rememberCb = document.getElementById('loginRemember');
         if (rememberCb && rememberCb.checked) {
           saveRemember(u, p);
@@ -150,36 +276,49 @@
           clearRemember();
         }
 
-        saveSession(u, matched?.role || 'user');
+        const user = res.user;
+        saveSession(user.employee_id, user.role, user.branch, `${user.first_name} ${user.last_name}`);
         showApp();
-        // apply permissions หลัง login
+        
+        // apply permissions after login
         setTimeout(() => {
           if (typeof applyPermissions === 'function') applyPermissions();
           if (typeof _adminInit === 'function') _adminInit();
         }, 400);
       } else {
-        btn.classList.remove('loading');
-        btn.querySelector('.login-btn-text').textContent = 'เข้าสู่ระบบ';
-
-        // ตรวจว่า username มีในระบบไหม
-        const userExists = _getUsers().some(x => x.user === u);
-        if (!userExists) {
-          fUser.classList.add('error');
-          userEl.value = '';
-          userEl.focus();
-        } else {
-          fPass.classList.add('error');
-          passEl.value = '';
-          passEl.focus();
+        if (btn) {
+          btn.classList.remove('loading');
+          btn.disabled = false;
+          const btnText = btn.querySelector('.login-btn-text');
+          if (btnText) btnText.textContent = 'เข้าสู่ระบบ';
         }
 
-        const revoked = _getUsers().find(x => x.user === u && x.pass === p && x.approved === false);
-        errMsg.textContent = revoked
-          ? '⛔ บัญชีนี้ถูกระงับ — กรุณาติดต่อผู้ดูแลระบบ'
-          : 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
-        errBox.style.display = 'flex';
+        if (errMsg) errMsg.textContent = res.error || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
+        if (errBox) errBox.style.display = 'flex';
+        
+        if (res.error && res.error.includes('รหัสผ่าน')) {
+          if (fPass) fPass.classList.add('error');
+          passEl.focus();
+        } else {
+          if (fUser) fUser.classList.add('error');
+          userEl.focus();
+        }
       }
-    }, 600); // delay เล็กน้อยให้รู้สึก responsive
+    })
+    .catch(err => {
+      if (btn) {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+        const btnText = btn.querySelector('.login-btn-text');
+        if (btnText) btnText.textContent = 'เข้าสู่ระบบ';
+      }
+      let msg = 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์';
+      if (err.message && (err.message.includes('Could not find PHP executable') || err.message.includes('Five Server'))) {
+        msg = 'กรุณาเปิดหน้าเว็บผ่าน http://localhost/kppl_v3 2/';
+      }
+      if (errMsg) errMsg.textContent = msg;
+      if (errBox) errBox.style.display = 'flex';
+    });
   };
 
   // ── Logout action ─────────────────────────────────────────────
@@ -211,7 +350,14 @@
     if (e.key !== 'Enter') return;
     const overlay = document.getElementById('loginOverlay');
     if (!overlay || overlay.style.display === 'none') return;
-    doLogin();
+    
+    // Determine which form is active
+    const formSignUp = document.getElementById('formSignUp');
+    if (formSignUp && formSignUp.style.display === 'flex') {
+      doRegister();
+    } else {
+      doLogin();
+    }
   });
 
   // ── Boot: check session + fill remembered credentials ─────────
@@ -224,7 +370,7 @@
       }, 500);
     } else {
       showLogin();
-      // เติม username/password ที่จำไว้
+      // Fill remembered credentials
       const mem = loadRemember();
       if (mem) {
         const uEl = document.getElementById('loginUser');
@@ -236,5 +382,8 @@
       }
     }
   });
+
+  // Empty placeholder to support old admin.js callbacks
+  window._syncLoginUsers = function() {};
 
 })();
