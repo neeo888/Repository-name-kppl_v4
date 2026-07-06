@@ -1,0 +1,33 @@
+# กปภ. พิษณุโลก Dashboard — Apache Config
+Options -Indexes
+DirectoryIndex index.html
+AddDefaultCharset UTF-8
+
+# ── Cache static assets ──
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/css              "access plus 7 days"
+  ExpiresByType application/javascript "access plus 7 days"
+  ExpiresByType image/png             "access plus 30 days"
+  ExpiresByType image/jpeg            "access plus 30 days"
+  ExpiresByType image/gif             "access plus 30 days"
+  ExpiresByType image/webp            "access plus 30 days"
+</IfModule>
+
+# ── Gzip compression ──
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css application/javascript
+</IfModule>
+
+# ── Security headers ──
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# ── ป้องกันเข้า sql โดยตรง ──
+<FilesMatch "\.sql$">
+  Order allow,deny
+  Deny from all
+</FilesMatch>

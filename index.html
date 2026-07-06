@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Dashboard ติดตามงานซ่อมท่อประปา กปภ.สาขาพิษณุโลก">
+  <title>กปภ. พิษณุโลก — ระบบติดตามงานซ่อมท่อ</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap">
+
+  <!-- Admin Panel CSS -->
+  <link rel="stylesheet" href="css/admin.css?v=3.2">
+
+  <!-- Login Screen CSS -->
+  <link rel="stylesheet" href="css/login.css?v=3.2">
+
+  <!-- Application CSS -->
+  <link rel="stylesheet" href="css/style.css?v=3.2">
+
+  <!-- CDN Libraries (must load before app JS) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+
+<body>
+
+<!-- ══════════════ LOGIN OVERLAY ══════════════ -->
+<!-- ══════════════ LOGIN OVERLAY ══════════════ -->
+<div id="loginOverlay" class="login-overlay">
+  <div class="login-bg">
+    <div class="login-orb orb1"></div>
+    <div class="login-orb orb2"></div>
+    <div class="login-orb orb3"></div>
+    <div class="login-grid"></div>
+    
+    <!-- Phitsanulok Sci-Fi Tech Map Background -->
+    <svg class="phitsanulok-map-svg" viewBox="0 0 1000 700" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Grid Reference Lines -->
+      <path d="M 50,350 L 950,350" stroke="rgba(0, 212, 255, 0.05)" stroke-width="1" stroke-dasharray="5 5"/>
+      <path d="M 500,50 L 500,650" stroke="rgba(0, 212, 255, 0.05)" stroke-width="1" stroke-dasharray="5 5"/>
+      
+      <!-- Phitsanulok Province stylized contour boundary -->
+      <path d="M 280,500 L 220,440 L 250,320 L 300,280 L 380,240 L 480,200 L 650,140 L 780,80 L 820,110 L 770,200 L 720,230 L 660,280 L 580,380 L 530,420 L 410,450 L 360,510 Z" 
+            stroke="rgba(0, 212, 255, 0.25)" stroke-width="2" stroke-dasharray="8 4" fill="rgba(0, 212, 255, 0.01)" filter="drop-shadow(0 0 8px rgba(0, 212, 255, 0.2))"/>
+      
+      <!-- Inside district connections -->
+      <path d="M 380,370 L 450,380 M 360,280 L 380,370 M 400,240 L 450,380 M 310,410 L 380,370 M 390,480 L 380,370 M 680,200 L 450,380 M 580,140 L 450,380 M 530,490 L 450,380" 
+            stroke="rgba(0, 212, 255, 0.12)" stroke-width="1"/>
+
+      <!-- Wang Thong (Main office) -->
+      <circle cx="450" cy="380" r="6" fill="#a855f7" class="glowing-node"/>
+      <circle cx="450" cy="380" r="14" stroke="#a855f7" stroke-width="1" stroke-dasharray="2 2" class="spinning-ring"/>
+      <text x="470" y="385" fill="#e9d5ff" font-size="12" font-weight="bold">กปภ.สาขาพิษณุโลก (วังทอง)</text>
+      <text x="470" y="400" fill="rgba(233,213,255,0.6)" font-size="10" font-family="monospace">16.8153° N, 100.4431° E</text>
+
+      <!-- Mueang Phitsanulok service center -->
+      <circle cx="380" cy="370" r="4" fill="#00d4ff" class="glowing-node"/>
+      <text x="365" y="374" fill="#e0f2fe" font-size="11" text-anchor="end">หน่วยบริการเมืองพิษณุโลก</text>
+
+      <!-- Phrom Phiram -->
+      <circle cx="360" cy="280" r="4" fill="#00d4ff" class="glowing-node"/>
+      <text x="345" y="284" fill="#e0f2fe" font-size="11" text-anchor="end">หน่วยบริการพรหมพิราม</text>
+
+      <!-- Wat Bot -->
+      <circle cx="400" cy="240" r="4" fill="#00d4ff" class="glowing-node"/>
+      <text x="415" y="244" fill="#e0f2fe" font-size="11">หน่วยบริการวัดโบสถ์</text>
+
+      <!-- Bang Rakam -->
+      <circle cx="310" cy="410" r="4" fill="#00d4ff" class="glowing-node"/>
+      <text x="295" y="414" fill="#e0f2fe" font-size="11" text-anchor="end">หน่วยบริการบางระกำ</text>
+
+      <!-- Bang Krathum -->
+      <circle cx="390" cy="480" r="4" fill="#00d4ff" class="glowing-node"/>
+      <text x="405" y="484" fill="#e0f2fe" font-size="11">หน่วยบริการบางกระทุ่ม</text>
+
+      <!-- Nakhon Thai -->
+      <circle cx="680" cy="200" r="4" fill="#00d4ff" class="glowing-node"/>
+      <text x="695" y="204" fill="#e0f2fe" font-size="11">หน่วยบริการนครไทย</text>
+
+      <!-- Chat Trakan -->
+      <circle cx="580" cy="140" r="4" fill="#00d4ff" class="glowing-node"/>
+      <text x="595" y="144" fill="#e0f2fe" font-size="11">หน่วยบริการชาติตระการ</text>
+
+      <!-- Noen Maprang -->
+      <circle cx="530" cy="490" r="4" fill="#00d4ff" class="glowing-node"/>
+      <text x="545" y="494" fill="#e0f2fe" font-size="11">หน่วยบริการเนินมะปราง</text>
+    </svg>
+  </div>
+
+  <div class="login-container">
+    
+    <!-- LEFT SIDE: PWA REGION 10 / INFO PANEL -->
+    <div class="login-info-side">
+      <div class="login-info-header">
+        <span class="info-prefix">// DISTRIBUTION SYSTEM DIVISION</span>
+        <h1 class="info-main-title">การประปาส่วนภูมิภาค สาขาพิษณุโลก</h1>
+        <h2 class="info-sub-title">ZONE_10 · OPERATIONS COMMAND</h2>
+      </div>
+      
+      <p class="info-desc">
+        "ระบบบริหารจัดการงานซ่อมท่อและเอกสารเบิกจ่าย (PWA Phitsanulok Integrity System)"
+
+         "มุ่งเน้นการบริหารจัดการด้วยความโปร่งใส ตรวจสอบได้ และเป็นธรรม ภายใต้หลักธรรมาภิบาล เพื่อเพิ่มประสิทธิภาพการบริการน้ำประปาใน 6 อำเภอ 10 หน่วยบริการ การประปาส่วนภูมิภาค สาขาพิษณุโลก"
+        
+        ระบบนี้จัดทำขึ้นเพื่อความปลอดภัยของข้อมูลและรักษามาตรฐานการปฏิบัติงานให้เป็นไปตามระเบียบ กปภ.
+      </p>
+
+      <!-- Animated Cyber Sci-Fi Radar -->
+      <div class="radar-container">
+        <div class="radar-circle ring1"></div>
+        <div class="radar-circle ring2"></div>
+        <div class="radar-circle ring3"></div>
+        <div class="radar-sweep"></div>
+        <!-- Dot markers -->
+        <div class="radar-dot dot1" style="top:25%; left:50%;" title="กปภ.สาขาอุตรดิตถ์"></div>
+        <div class="radar-dot dot2" style="top:35%; left:45%;" title="กปภ.สาขาพิษณุโลก"></div>
+        <div class="radar-dot dot3" style="top:40%; left:30%;" title="กปภ.สาขาสุโขทัย"></div>
+        <div class="radar-dot dot4" style="top:50%; left:52%;" title="กปภ.สาขาพิจิตร"></div>
+        <div class="radar-dot dot5" style="top:60%; left:65%;" title="กปภ.สาขาเพชรบูรณ์"></div>
+        <div class="radar-dot dot6" style="top:65%; left:48%;" title="กปภ.สาขานครสวรรค์"></div>
+        <div class="radar-dot dot7" style="top:75%; left:40%;" title="กปภ.สาขาชัยนาท"></div>
+        <div class="hub-label">HUB : CC/1032<br>นครสวรรค์</div>
+      </div>
+
+      <!-- Stats Cards Row -->
+      <div class="info-stats-row">
+        <div class="info-stat-box">
+          <div class="is-label">BRANCHES</div>
+          <div class="is-val">10 <span>nodes</span></div>
+        </div>
+        <div class="info-stat-box">
+          <div class="is-label">PROVINCES</div>
+          <div class="is-val">10 <span>regions</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MIDDLE SIDE: LOGIN / REGISTER CARD -->
+    <div class="login-card-side">
+      <div class="system-tag">ระบบติดตามเอกสารรอประมาณราคา</div>
+      
+      <!-- Tabs switching buttons -->
+      <div class="login-tabs">
+        <button class="login-tab active" onclick="switchLoginTab('signin')" id="tabSignIn">เข้าสู่ระบบ</button>
+        <button class="login-tab" onclick="switchLoginTab('signup')" id="tabSignUp">ลงทะเบียนครั้งแรก</button>
+      </div>
+
+      <!-- FORM 1: SIGN IN -->
+      <div class="login-form-wrapper" id="formSignIn">
+        <div class="login-form-title">ลงชื่อเข้าใช้งานระบบ</div>
+        
+        <div class="login-field" id="loginFieldUser">
+          <label>รหัสพนักงาน (Username)</label>
+          <div class="login-input-wrap">
+            <span class="login-input-ico">👤</span>
+            <input type="text" id="loginUser" placeholder="กรอก Username / รหัสพนักงาน" autocomplete="username">
+          </div>
+        </div>
+        
+        <div class="login-field" id="loginFieldPass">
+          <label>รหัสผ่าน (Password)</label>
+          <div class="login-input-wrap">
+            <span class="login-input-ico">🔒</span>
+            <input type="password" id="loginPass" placeholder="กรอกรหัสผ่าน" autocomplete="current-password">
+            <button class="login-eye" onclick="toggleLoginPass(this)" type="button">👁</button>
+          </div>
+        </div>
+
+        <div class="login-remember">
+          <label class="remember-label">
+            <input type="checkbox" id="loginRemember" class="remember-checkbox">
+            <span class="remember-custom"></span>
+            <span class="remember-text">จดจำการเข้าระบบในอุปกรณ์นี้</span>
+          </label>
+        </div>
+
+        <div id="loginError" class="login-error" style="display:none">
+          <span>⚠️</span><span id="loginErrorMsg">รหัสพนักงานหรือรหัสผ่านไม่ถูกต้อง</span>
+        </div>
+
+        <button class="login-btn" id="loginBtn" onclick="doLogin()">
+          <span class="login-btn-text">เข้าสู่ระบบ</span>
+          <span class="login-btn-arrow">→</span>
+        </button>
+      </div>
+
+      <!-- FORM 2: SIGN UP -->
+      <div class="login-form-wrapper" id="formSignUp" style="display:none">
+        <div class="login-form-title">สร้างบัญชีผู้ใช้งานใหม่</div>
+
+        <!-- Name / Last Name side-by-side -->
+        <div class="login-row-fields">
+          <div class="login-field" id="regFieldFirst">
+            <label>ชื่อจริง</label>
+            <div class="login-input-wrap">
+              <input type="text" id="regFirst" placeholder="ชื่อจริง">
+            </div>
+          </div>
+          <div class="login-field" id="regFieldLast">
+            <label>นามสกุล</label>
+            <div class="login-input-wrap">
+              <input type="text" id="regLast" placeholder="นามสกุล">
+            </div>
+          </div>
+        </div>
+
+        <div class="login-field" id="regFieldEmpId">
+          <label>รหัสพนักงาน</label>
+          <div class="login-input-wrap">
+            <span class="login-input-ico">👤</span>
+            <input type="text" id="regEmpId" placeholder="กรอกรหัสพนักงาน">
+          </div>
+        </div>
+
+        <div class="login-field" id="regFieldBranch">
+          <label>สาขา / สังกัด</label>
+          <div class="login-input-wrap">
+            <span class="login-input-ico">📍</span>
+            <select id="regBranch" class="login-select">
+              <option value="" disabled selected>เลือกสาขา / เขต...</option>
+              <option value="กปภ.สาขาพิษณุโลก">กปภ.สาขาพิษณุโลก </option>
+              <option value="กปภ.สาขานครสวรรค์">กปภ.สาขานครสวรรค์</option>
+              <option value="กปภ.สาขาสุโขทัย">กปภ.สาขาสุโขทัย</option>
+              <option value="กปภ.สาขาตาก">กปภ.สาขาตาก</option>
+              <option value="กปภ.สาขาอุตรดิตถ์">กปภ.สาขาอุตรดิตถ์</option>
+              <option value="กปภ.สาขาพิจิตร">กปภ.สาขาพิจิตร</option>
+              <option value="กปภ.สาขากำแพงเพชร">กปภ.สาขากำแพงเพชร</option>
+              <option value="กปภ.สาขาเพชรบูรณ์">กปภ.สาขาเพชรบูรณ์</option>
+              <option value="กปภ.สาขาอุทัยธานี">กปภ.สาขาอุทัยธานี</option>
+              <option value="กปภ.สาขาชัยนาท">กปภ.สาขาชัยนาท</option>
+              <option value="สำนักงานประปาเขต 10">สำนักงานประปาเขต 10 </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="login-field" id="regFieldPass">
+          <label>กำหนดรหัสผ่าน (Password)</label>
+          <div class="login-input-wrap">
+            <span class="login-input-ico">🔒</span>
+            <input type="password" id="regPass" placeholder="อย่างน้อย 6 ตัวอักษร">
+          </div>
+        </div>
+
+        <div class="login-field" id="regFieldPassConfirm">
+          <label>ยืนยันรหัสผ่าน (Confirm Password)</label>
+          <div class="login-input-wrap">
+            <span class="login-input-ico">🔒</span>
+            <input type="password" id="regPassConfirm" placeholder="ระบุรหัสผ่านอีกครั้ง">
+          </div>
+        </div>
+
+        <div id="regError" class="login-error" style="display:none">
+          <span>⚠️</span><span id="regErrorMsg">รหัสผ่านไม่ตรงกัน</span>
+        </div>
+
+        <button class="login-btn" id="regBtn" onclick="doRegister()">
+          <span class="login-btn-text">ลงทะเบียน</span>
+          <span class="login-btn-arrow">→</span>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- RIGHT SIDE: STATS & COORDINATES LIST -->
+    <div class="login-status-side">
+      <div class="status-indicator">
+        <span class="status-dot green"></span>
+        <div class="status-texts">
+          <span class="status-name">UPLINK</span>
+          <span class="status-desc">STABLE</span>
+        </div>
+      </div>
+      <div class="status-indicator">
+        <span class="status-dot green"></span>
+        <div class="status-texts">
+          <span class="status-name">SCADA</span>
+          <span class="status-desc">SYNC</span>
+        </div>
+      </div>
+      <div class="status-indicator">
+        <span class="status-dot green"></span>
+        <div class="status-texts">
+          <span class="status-name">26/26</span>
+          <span class="status-desc">NODES</span>
+        </div>
+      </div>
+      <div class="status-indicator coord">
+        <div class="status-texts">
+          <span class="status-name">LAT</span>
+          <span class="status-desc">16.8153° N</span>
+        </div>
+      </div>
+      <div class="status-indicator coord">
+        <div class="status-texts">
+          <span class="status-name">LNG</span>
+          <span class="status-desc">100.4431° E</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Old fields hidden wrapper -->
+  <div style="display:none">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="login-logo-ring">
+        <img src="data:image/png;base64,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" alt="กปภ." style="width:100%;height:100%;object-fit:contain;display:block;">
+      </div>
+    </div>
+
+    <div class="login-header">
+      <h1 class="login-title">การประปาส่วนภูมิภาค</h1>
+      <p class="login-sub-org">สาขาพิษณุโลก</p>
+      <p class="login-sub">ระบบติดตามเอกสารรอประมาณราคางานซ่อมท่อ</p>
+      <div class="login-divider"><span>PIPE REPAIR DOCUMENT TRACKING SYSTEM</span></div>
+    </div>
+
+    <div class="login-form">
+      <div class="login-field" id="loginFieldUser">
+        <label>ชื่อผู้ใช้ (Username)</label>
+        <div class="login-input-wrap">
+          <span class="login-input-ico">👤</span>
+          <input type="text" id="loginUser" placeholder="กรอก Username"
+                 autocomplete="username" spellcheck="false">
+        </div>
+      </div>
+      <div class="login-field" id="loginFieldPass">
+        <label>รหัสผ่าน (Password)</label>
+        <div class="login-input-wrap">
+          <span class="login-input-ico">🔒</span>
+          <input type="password" id="loginPass" placeholder="กรอก Password"
+                 autocomplete="current-password">
+          <button class="login-eye" onclick="toggleLoginPass(this)" type="button">👁</button>
+        </div>
+      </div>
+
+      <!-- Remember Me -->
+      <div class="login-remember">
+        <label class="remember-label">
+          <input type="checkbox" id="loginRemember" class="remember-checkbox">
+          <span class="remember-custom"></span>
+          <span class="remember-text">จดจำชื่อผู้ใช้และรหัสผ่าน</span>
+        </label>
+      </div>
+
+      <div id="loginError" class="login-error" style="display:none">
+        <span>⚠️</span><span id="loginErrorMsg">ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง</span>
+      </div>
+
+      <button class="login-btn" id="loginBtn" onclick="doLogin()">
+        <span class="login-btn-text">เข้าสู่ระบบ</span>
+        <span class="login-btn-arrow">→</span>
+      </button>
+    </div>
+
+    <div class="login-footer">
+      <span>Provincial Waterworks Authority · Region 10 · Phitsanulok</span>
+    </div>
+  </div>
+  </div>
+</div>
+
+<div class="wrap" id="mainApp" style="display:none">
+
+<header>
+  <!-- แถวบน: Logo + Clock -->
+  <div class="header-top">
+    <div class="logo">
+      <div class="logo-mark" style="background:none;box-shadow:none;overflow:visible;border-radius:0">
+        <img src="data:image/png;base64,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" style="width:56px;height:56px;object-fit:contain;border-radius:10px">
+      </div>
+      <div class="logo-text">
+        <h1>ระบบติดตามเอกสารรอประมาณราคางานซ่อมท่อ<br><span style="color:var(--cyan);font-size:0.85em">กปภ.สาขาพิษณุโลก</span></h1>
+        <p>PIPE REPAIR DOCUMENT TRACKING · PROVINCIAL WATERWORKS AUTHORITY</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <!-- Weather Widget -->
+      <div id="wxWidget" title="กำลังโหลดสภาพอากาศ...">
+        <span class="wx-ico wx-spin">🌡️</span>
+        <span class="wx-sub" style="color:var(--text3)">กำลังโหลด...</span>
+      </div>
+      <div class="header-divider"></div>
+      <!-- Greeting inline -->
+      <div class="header-greeting" id="headerGreeting">
+        <span class="hg-emoji" id="hgEmoji">🌅</span>
+        <div class="hg-text">
+          <div class="hg-title" id="hgTitle">ระบบติดตามเอกสาร กปภ.</div>
+          <div class="hg-sub" id="hgSub"></div>
+        </div>
+      </div>
+      <div class="header-divider"></div>
+      <div class="live-pill"><div class="live-dot"></div><span>LIVE</span></div>
+      <div class="clock-block">
+        <span class="clock-label">⏱ เวลาปัจจุบัน</span>
+        <span class="clock-val" id="lastUpdate">--/--/---- --:--</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- แถวล่าง: Ticker ตัววิ่งใหญ่ -->
+  <div class="header-ticker">
+    <div class="hticker-label">
+      <span class="hticker-icon">📢</span>
+      <span>แจ้งเตือน</span>
+      <button class="ticker-edit-btn" onclick="tickerMsgModal()" title="เพิ่ม/แก้ไขข้อความ">✏️</button>
+    </div>
+    <div class="hticker-track">
+      <div class="hticker-content" id="tickerContent">
+        <span class="t-item t-item-info">กำลังโหลดข้อมูล...</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- นำเข้าข้อมูล -->
+  <div class="import-wrap" data-section="import">
+    <div class="drop-zone" id="dropZone">
+      <!-- file input ถูก intercept โดย password modal — ไม่เปิดตรง -->
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.txt,.tsv" multiple style="display:none">
+      <div class="drop-icon-big">📂</div>
+      <div class="drop-info">
+        <strong>นำเข้าข้อมูล — ลากไฟล์มาวางหรือคลิกเพื่อเลือก</strong>
+        <p>รองรับ: .XLSX · .XLS · .CSV · .TXT · .TSV &nbsp;·&nbsp; 🔒 ต้องใช้รหัสผ่าน</p>
+      </div>
+    </div>
+    <div class="import-status" id="importStatus"></div>
+    <div class="update-info-bar">
+      <div class="uib-left"><span class="uib-dot"></span><span class="uib-label">นำเข้าล่าสุด</span></div>
+      <div class="uib-mid" id="uibImportInfo"><span class="uib-nodata">— ยังไม่มีการนำเข้าไฟล์ —</span></div>
+      <div class="uib-pending">
+        <span class="uib-pending-label">เอกสารรอปัจจุบัน:</span>
+        <span class="uib-pending-val" id="uibPendingCount">0</span>
+        <span class="uib-pending-unit">รายการ</span>
+      </div>
+      <div class="uib-right"><span class="uib-clock-ico">🕐</span><span class="uib-time" id="uibTime">--:--:--</span></div>
+    </div>
+  </div>
+
+  <!-- DB Status -->
+  <div class="db-status-bar" id="dbStatusBar">
+    <span class="dbs-icon">🔄</span><span class="dbs-state" style="color:var(--text3)">กำลังเริ่มต้นระบบ...</span>
+  </div>
+
+  <!-- KPI -->
+  <div class="section-label" data-section="stats"><span>ภาพรวมระบบ</span></div>
+  <div class="stats-row" data-section="stats">
+    <div class="stat-card c6" onclick="setDashboardCardFilter('estimated_today')"><div class="stat-icon-wrap">📐</div><div class="stat-num" id="statEstimatedToday">0</div><div class="stat-label">เอกสารประมาณการวันนี้</div><div class="stat-sub" id="statEstimatedTodaySub">รายการวันนี้</div></div>
+    <div class="stat-card c4" onclick="setDashboardCardFilter('pending_estimate')"><div class="stat-icon-wrap">⏳</div><div class="stat-num" id="statPendingEstimate">0</div><div class="stat-label">เอกสารรอประมาณราคา</div><div class="stat-sub" id="statPendingEstimateSub">จากไฟล์นำเข้าล่าสุด</div></div>
+    <div class="stat-card c2" onclick="setDashboardCardFilter('contractors')"><div class="stat-icon-wrap">👷</div><div class="stat-num" id="statContractors">0</div><div class="stat-label">ผู้รับจ้าง / ช่าง</div><div class="stat-sub" id="statTopContractor">—</div></div>
+    <div class="stat-card c3" onclick="setDashboardCardFilter('current_month')"><div class="stat-icon-wrap">📅</div><div class="stat-num" id="statThisMonth">0</div><div class="stat-label">เดือนปัจจุบัน</div><div class="stat-sub" id="statMonthSub">—</div></div>
+    <div class="stat-card c5" onclick="setDashboardCardFilter('average')"><div class="stat-icon-wrap">📈</div><div class="stat-num" id="statAvgDay">0</div><div class="stat-label">เฉลี่ยต่อวัน</div><div class="stat-sub" id="statAvgSub">—</div></div>
+    <div class="stat-card c1" onclick="setDashboardCardFilter('total_estimate')"><div class="stat-icon-wrap">📋</div><div class="stat-num" id="statTotal">0</div><div class="stat-label">เอกสารรอประมาณราคาทั้งหมด</div><div class="stat-sub" id="statTotalSub">รวมทุกปีงบประมาณ</div></div>
+  </div>
+
+
+  <!-- ══ ปีงบประมาณ + KPI + AI ══ -->
+  <div class="section-label" data-section="kpi"><span>🎯 ตัวชี้วัด KPI ปีงบประมาณ</span></div>
+
+  <!-- FY Progress Banner -->
+  <div class="fy-banner" data-section="kpi" id="fyBanner">
+    <span class="fy-icon">📅</span>
+    <div class="fy-info">
+      <div class="fy-title" id="fyTitle">ปีงบประมาณ ...</div>
+      <div class="fy-sub"  id="fySub">กำลังคำนวณ...</div>
+    </div>
+    <div class="fy-prog-wrap">
+      <div class="fy-prog-labels">
+        <span id="fyProgLeft">ต.ค.</span>
+        <span id="fyProgPct">0%</span>
+        <span id="fyProgRight">ก.ย.</span>
+      </div>
+      <div class="fy-prog-track">
+        <div class="fy-prog-fill" id="fyProgFill" style="width:0%;background:linear-gradient(90deg,#0090e0,#00c8ff,#00e5a0)"></div>
+        <div class="fy-prog-marker" id="fyProgMarker" style="left:0%"></div>
+      </div>
+    </div>
+    <div class="fy-verdict" id="fyVerdict">—</div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-row" data-section="kpi" id="kpiRow">
+    <div class="kpi-card kpi-c" onclick="setDashboardCardFilter('kpi_total')">
+      <div class="kpi-label">สะสม FY vs เป้า</div>
+      <div class="kpi-val" id="kpiTotal">—</div>
+      <div class="kpi-sub" id="kpiTotalSub">เทียบเป้าสะสม</div>
+      <div class="kpi-bar-wrap"><div class="kpi-bar" id="kpiTotalBar" style="width:0%"></div></div>
+    </div>
+    <div class="kpi-card kpi-g" onclick="setDashboardCardFilter('kpi_rate')">
+      <div class="kpi-label">⚡ ต้องทำอีกเดือนนี้</div>
+      <div class="kpi-val" id="kpiRate">—</div>
+      <div class="kpi-sub" id="kpiRateSub">รายการ ภายในสิ้นเดือน</div>
+      <div class="kpi-bar-wrap"><div class="kpi-bar" id="kpiRateBar" style="width:0%"></div></div>
+    </div>
+    <div class="kpi-card kpi-a" onclick="setDashboardCardFilter('kpi_forecast')">
+      <div class="kpi-label">คาดการณ์ครบปี</div>
+      <div class="kpi-val" id="kpiForecast">—</div>
+      <div class="kpi-sub" id="kpiForecastSub">รายการ (Projection)</div>
+      <div class="kpi-bar-wrap"><div class="kpi-bar" id="kpiForecastBar" style="width:0%"></div></div>
+    </div>
+    <div class="kpi-card kpi-r" onclick="setDashboardCardFilter('kpi_carryover')">
+      <div class="kpi-label">⚠️ ค้างข้ามเดือน</div>
+      <div class="kpi-val" id="kpiCarryover">—</div>
+      <div class="kpi-sub" id="kpiCarryoverSub">ค้าง >30 วัน (เสี่ยงข้ามปี)</div>
+      <div class="kpi-bar-wrap"><div class="kpi-bar" id="kpiCarryoverBar" style="width:0%"></div></div>
+    </div>
+    <div class="kpi-card kpi-p" onclick="setDashboardCardFilter('kpi_success')">
+      <div class="kpi-label">✅ สำเร็จเทียบเป้า</div>
+      <div class="kpi-val" id="kpiSuccess">—</div>
+      <div class="kpi-sub" id="kpiSuccessSub">% เทียบเป้าสะสมรายเดือน</div>
+      <div class="kpi-bar-wrap"><div class="kpi-bar" id="kpiSuccessBar" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <!-- Team Target Cards -->
+  <div class="section-label" data-section="team"><span>👷 เป้าหมายรายทีม</span></div>
+  <div class="team-grid" data-section="team" data-section="team" id="teamGrid">
+    <div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--text3);font-family:var(--mono)">
+      <div style="font-size:30px;margin-bottom:10px;opacity:.35">👷</div>
+      <div style="font-size:11px">กำลังโหลดข้อมูลทีม...</div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       EXPANDABLE: FORECAST + YOY
+  ════════════════════════════════════════════════ -->
+  <div class="section-label" data-section="analysis"><span>📈 วิเคราะห์เชิงลึก</span></div>
+
+  <!-- Trigger Buttons Row -->
+  <div class="expand-btn-row" data-section="analysis">
+
+    <!-- Button 1: Forecast -->
+    <button class="expand-trigger et-forecast" id="trigForecast" onclick="toggleExpand('forecast')">
+      <span class="et-icon">📈</span>
+      <div class="et-body">
+        <div class="et-title">แนวโน้มและคาดการณ์ตลอดปีงบประมาณ</div>
+        <div class="et-sub" id="forecastBtnSub">คาดการณ์ EOY · Trend · เป้าหมายรายเดือน · งานค้าง</div>
+        <div class="et-chips">
+          <span class="et-chip">FORECAST</span>
+          <span class="et-chip">PROJECTION</span>
+          <span class="et-chip">AGING</span>
+          <span class="et-live"><span class="et-live-dot"></span>LIVE</span>
+        </div>
+      </div>
+      <span class="et-arrow">⌄</span>
+    </button>
+
+    <!-- Button 2: Year-over-Year -->
+    <button class="expand-trigger et-yoy" id="trigYoy" onclick="toggleExpand('yoy')">
+      <span class="et-icon">📊</span>
+      <div class="et-body">
+        <div class="et-title">เปรียบเทียบปีงบประมาณ (Year-over-Year)</div>
+        <div class="et-sub" id="yoyBtnSub">เปรียบเทียบข้ามปี · Bar · Line · Heatmap · Stacked</div>
+        <div class="et-chips">
+          <span class="et-chip">YOY</span>
+          <span class="et-chip">MULTI-YEAR</span>
+          <span class="et-chip">HEATMAP</span>
+        </div>
+      </div>
+      <span class="et-arrow">⌄</span>
+    </button>
+
+  </div>
+
+  <!-- ── Collapsible Panel: Forecast ── -->
+  <div class="expand-panel" id="panelForecast" data-section="analysis">
+    <div class="expand-inner">
+      <div class="panel-head" style="padding:16px 20px 0">
+        <div class="panel-title"><span class="icon">📈</span> แนวโน้มและคาดการณ์ตลอดปีงบประมาณ</div>
+        <div class="panel-actions">
+          <span class="chip">FORECAST</span>
+          <button class="export-btn" onclick="toggleExpand('forecast')" style="font-size:9px">✕ ปิด</button>
+        </div>
+      </div>
+      <div class="panel-body"><canvas id="forecastChart" height="220"></canvas></div>
+      <div class="fc-legend">
+        <div class="fcl-item"><div class="fcl-line" style="background:#00c8ff"></div>ปริมาณงานจริง</div>
+        <div class="fcl-item"><div class="fcl-dash" style="border-color:#a855f7"></div>คาดการณ์ (Projection)</div>
+        <div class="fcl-item"><div class="fcl-dash" style="border-color:#00e5a0"></div>เป้าหมายรายเดือน</div>
+        <div class="fcl-item"><div class="fcl-line" style="background:#ff4757"></div>งานค้าง (Aging &gt;90 วัน)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Collapsible Panel: Year-over-Year ── -->
+  <div class="expand-panel" id="panelYoy" data-section="analysis">
+    <div class="expand-inner" id="yoyPanel">
+
+      <!-- Tab bar -->
+      <div class="yoy-tabs" id="yoyTabs"><!-- filled by JS --></div>
+
+      <!-- Summary pills -->
+      <div class="yoy-summary" id="yoySummary"></div>
+
+      <!-- Stats strip -->
+      <div class="yoy-stats" id="yoyStats"></div>
+
+      <!-- Main chart -->
+      <div class="yoy-chart-wrap">
+        <canvas id="yoyChart" height="200"></canvas>
+      </div>
+
+      <!-- View buttons -->
+      <div style="display:flex;align-items:center;gap:8px;padding:0 20px 10px;flex-wrap:wrap">
+        <span style="font-size:9px;color:var(--text3);font-family:var(--mono)">มุมมอง:</span>
+        <button class="view-btn active" id="vBar"   onclick="setYoyView('bar')">📊 Bar</button>
+        <button class="view-btn"        id="vLine"  onclick="setYoyView('line')">📈 Line</button>
+        <button class="view-btn"        id="vHeat"  onclick="setYoyView('heat')">🌡️ Heatmap</button>
+        <button class="view-btn"        id="vStack" onclick="setYoyView('stack')">🔢 Stacked</button>
+        <button class="export-btn" onclick="toggleExpand('yoy')" style="margin-left:auto;font-size:9px">✕ ปิด</button>
+      </div>
+
+      <!-- Legend -->
+      <div class="yoy-legend" id="yoyLegend"></div>
+
+      <!-- Month Detail Grid -->
+      <div id="yoyMonthGrid" style="display:none">
+        <div style="padding:8px 20px 4px;font-size:10px;font-family:var(--mono);color:var(--text2)">
+          📅 ปริมาณงานรายเดือน (ต.ค. → ก.ย.)
+        </div>
+        <div class="yoy-month-grid" id="yoyMonthCells"></div>
+      </div>
+
+      <!-- Heatmap -->
+      <div id="yoyHeatmap" style="display:none">
+        <div style="padding:8px 20px 4px;font-size:10px;font-family:var(--mono);color:var(--text2)">
+          🌡️ Heatmap ปริมาณงาน — แต่ละแถว = 1 ปีงบประมาณ, แต่ละคอลัมน์ = เดือน
+        </div>
+        <div class="hm-header" id="hmHeader"></div>
+        <div class="yoy-heatmap" id="hmBody"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Tooltip (global, outside panels) -->
+  <div class="yoy-tooltip" id="yoyTooltip"></div>
+
+  <!-- AI Analysis Panel -->
+  <div class="ai-panel" data-section="ai" id="aiPanel">
+    <div class="ai-head">
+      <span class="ai-brain">🧠</span>
+      <div class="ai-head-txt">
+        <div class="ai-head-title">AI วิเคราะห์ปีงบประมาณ</div>
+        <div class="ai-head-sub">FISCAL YEAR INTELLIGENCE · CLAUDE SONNET</div>
+      </div>
+      <div class="ai-live-dot"></div>
+    </div>
+    <div class="ai-body" id="aiBody">
+      <div class="ai-thinking"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div></div>
+    </div>
+  </div>
+
+  <!-- ══ LEADERBOARD ══ -->
+  <div class="section-label" data-section="leaderboard"><span>🏆 อันดับการปิดงาน</span></div>
+  <div class="leaderboard-grid" data-section="leaderboard" data-section="leaderboard">
+    <!-- เร็วที่สุด -->
+    <div class="panel lb-fast-panel">
+      <div class="panel-head">
+        <div class="panel-title"><span class="icon">⚡</span> ปิดงานเร็วที่สุด</div>
+        <span class="chip" style="background:rgba(255,215,0,0.1);border-color:rgba(255,215,0,0.3);color:#ffd700">TOP SPEED</span>
+      </div>
+      <div class="panel-body lb-body" id="lbFast">
+        <div class="lb-loading">กำลังคำนวณ...</div>
+      </div>
+    </div>
+    <!-- ช้าที่สุด -->
+    <div class="panel lb-slow-panel">
+      <div class="panel-head">
+        <div class="panel-title"><span class="icon">⚠️</span> ต้องเร่งดำเนินการ</div>
+        <span class="chip" style="background:rgba(255,71,87,0.1);border-color:rgba(255,71,87,0.3);color:#ff4757">SLOW ALERT</span>
+      </div>
+      <div class="panel-body lb-body" id="lbSlow">
+        <div class="lb-loading">กำลังคำนวณ...</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════════════════════
+       GRAND TOTAL COUNTER
+  ════════════════════════════════════════════════ -->
+  <div class="section-label" data-section="grandtotal"><span>📊 ยอดรวมเอกสารทั้งหมด</span></div>
+  <div class="grand-total-card" data-section="grandtotal" id="grandTotalCard">
+    <span class="gt-icon">📋</span>
+    <div class="gt-main">
+      <div class="gt-label">เอกสารรอประมาณราคาสะสมทั้งหมด</div>
+      <div class="gt-counter" id="gtCounter">0</div>
+      <div class="gt-unit">รายการ (นับสะสมทุกปีงบประมาณ)</div>
+    </div>
+    <div class="gt-divider"></div>
+    <div class="gt-fy-blocks" id="gtFyBlocks">
+      <!-- filled by JS per FY -->
+    </div>
+  </div>
+
+
+
+  <!-- Charts Row 1 -->
+  <div class="section-label" data-section="charts"><span>กราฟวิเคราะห์</span></div>
+  <div class="chart-grid-2" data-section="charts">
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title"><span class="icon">📊</span> แนวโน้มงานรายเดือน</div>
+      <div class="panel-actions">
+        <span id="trendLegend" style="display:inline-flex;align-items:center;gap:10px;font-size:10px;font-family:var(--mono);color:rgba(200,230,255,0.7);margin-right:8px">
+          <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:18px;height:2.5px;background:#00f0ff;display:inline-block;border-radius:2px;box-shadow:0 0 6px #00f0ff88"></span>ปิดงาน</span>
+          <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:18px;height:0;border-top:2.5px dashed #ffab00;display:inline-block"></span>เปิดงาน*</span>
+        </span>
+        <span class="chip">TREND</span><button class="export-btn" onclick="exportChart('trendChart','trend_monthly')">↓ PNG</button>
+      </div></div>
+      <div class="panel-body">
+        <canvas id="trendChart" height="200"></canvas>
+        <div style="font-size:9px;color:rgba(150,180,210,0.45);margin-top:4px;font-family:var(--mono);padding:0 4px">
+          * เปิดงาน = ประมาณจากหมายเลขลำดับงาน (CC-XXXX-<strong style="color:rgba(255,171,0,0.6)">NUM</strong>/FY) · linear interpolation ต่อปีงบ
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title"><span class="icon">📊</span> จำนวนงานต่อผู้รับจ้าง</div><div class="panel-actions"><span class="chip">CONTRACTOR</span><button class="export-btn" onclick="exportChart('pieChart','contractor_bars')">↓ PNG</button></div></div>
+      <div class="panel-body pie-wrap"><canvas id="pieChart" height="210"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Charts Row 2 -->
+  <div class="chart-grid-eq" data-section="charts">
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title"><span class="icon">📆</span> งานรายวัน (30 วันล่าสุด)</div><div class="panel-actions"><span class="chip">DAILY</span><button class="export-btn" onclick="exportChart('dailyChart','daily_30d')">↓ PNG</button></div></div>
+      <div class="panel-body"><canvas id="dailyChart" height="200"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title"><span class="icon">⏳</span> เอกสารค้างนานที่สุดต่อช่าง</div><div class="panel-actions"><span class="chip">AGING</span><button class="export-btn" onclick="exportChart('agingChart','aging')">↓ PNG</button></div></div>
+      <div class="panel-body"><canvas id="agingChart" height="200"></canvas></div>
+      <div class="aging-legend">
+        <span><span class="dot" style="background:linear-gradient(90deg,#ff6b6b,#ff2040)"></span>&gt;180วัน</span>
+        <span><span class="dot" style="background:linear-gradient(90deg,#ffd166,#ff8c00)"></span>91-180วัน</span>
+        <span><span class="dot" style="background:linear-gradient(90deg,#ffe566,#ffbe0b)"></span>31-90วัน</span>
+        <span><span class="dot" style="background:linear-gradient(90deg,#67e8f9,#00c8ff)"></span>≤30วัน</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stacked -->
+  <div class="chart-full" data-section="charts">
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title"><span class="icon">📊</span> ช่าง × เดือน (Stacked)</div><div class="panel-actions"><span class="chip">STACKED</span><button class="export-btn" onclick="exportChart('stackedChart','stacked')">↓ PNG</button></div></div>
+      <div class="panel-body"><canvas id="stackedChart" height="260"></canvas></div>
+    </div>
+  </div>
+
+
+  <!-- Per-Team Trend Section -->
+  <div class="section-label" data-section="teamcharts"><span>👷 Trend รายทีม ปีงบประมาณ</span></div>
+  <div class="chart-grid-eq" data-section="teamcharts" style="margin-bottom:14px">
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title"><span class="icon">📊</span> ปริมาณงานรายทีม/เดือน</div></div>
+      <div class="panel-body"><canvas id="teamMonthChart" height="220"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title"><span class="icon">🎯</span> ความคืบหน้าเทียบเป้าหมาย</div></div>
+      <div class="panel-body"><canvas id="teamTargetChart" height="220"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="section-label" data-section="table"><span>รายการเอกสาร</span></div>
+  <div class="panel" data-section="table">
+    <div class="table-tabs" id="tableTabs">
+      <div class="table-tab active" onclick="setTableTab('all')" id="tab_all">
+        ทั้งหมด <span class="table-tab-badge" id="tab_all_badge">0</span>
+      </div>
+      <div class="table-tab" onclick="setTableTab('estimate')" id="tab_estimate">
+        1) รอประมาณราคา <span class="table-tab-badge" id="tab_estimate_badge">0</span>
+      </div>
+      <div class="table-tab" onclick="setTableTab('set')" id="tab_set">
+        2) รอจัดชุด <span class="table-tab-badge" id="tab_set_badge">0</span>
+      </div>
+      <div class="table-tab" onclick="setTableTab('my')" id="tab_my">
+        3) ชุดเบิกของฉัน <span class="table-tab-badge" id="tab_my_badge">0</span>
+      </div>
+    </div>
+    <div class="filter-bar">
+      <div class="filter-label">🔍 กรอง</div>
+      <div class="filter-group">
+        <div class="f-select-wrap" id="fCtWrap"><span class="f-ico">👷</span><select id="filterContractor2" class="f-select"><option value="">ช่างทั้งหมด</option></select><span class="f-arr">▾</span></div>
+        <div class="f-select-wrap" id="fMoWrap"><span class="f-ico">📅</span><select id="filterMonth" class="f-select"><option value="">เดือนทั้งหมด</option></select><span class="f-arr">▾</span></div>
+        <div class="f-select-wrap" id="fTypWrap"><span class="f-ico">🔧</span><select id="filterType" class="f-select"><option value="">ประเภทงานทั้งหมด</option><option value="ท่อรั่ว">ท่อรั่ว</option><option value="ท่อแตก">ท่อแตก</option><option value="ท่ออุด">ท่ออุด</option><option value="อื่นๆ">อื่นๆ</option></select><span class="f-arr">▾</span></div>
+        <button class="clear-btn" onclick="clearFilters()">✕ ล้าง</button>
+      </div>
+      <div class="search-wrap"><span style="font-size:12px;color:var(--text3)">🔍</span><input type="text" id="searchInput" placeholder="ค้นหารหัสงาน CC..."></div>
+    </div>
+    <div class="table-head-bar">
+      <span class="table-title" id="tableTitleText">รายการทั้งหมด</span>
+      <span class="rows-badge" id="tableCount">0 rows</span>
+      <div class="export-table-btns">
+        <button class="exp-btn exp-xlsx" onclick="exportTableExcel()">
+          <span>📊</span> Excel
+        </button>
+        <button class="exp-btn exp-pdf" onclick="exportTablePDF()">
+          <span>📄</span> PDF
+        </button>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th onclick="sortTable(0)" style="width:65px">#</th>
+          <th onclick="sortTable(0)">เลขที่งาน</th>
+          <th onclick="sortTable(1)" id="thDate">วันที่ปิดงาน ↕</th>
+          <th onclick="sortTable(2)">ผู้รับจ้าง/มิสเตอร์</th>
+          <th onclick="sortTable(3)">วงเงิน (คาดการณ์)</th>
+          <th onclick="sortTable(3)">บันทึก</th>
+        </tr></thead>
+        <tbody id="tableBody"><tr><td colspan="6" class="no-data">กำลังโหลด...</td></tr></tbody>
+      </table>
+    </div>
+    <div class="pagination"><span id="pageInfo">—</span><div class="page-btns" id="pageBtns"></div></div>
+  </div>
+
+</div>
+</div><!-- /wrap -->
+<!-- ── Auto-Refresh Progress Bar ── -->
+<div id="refreshBar"><div id="refreshProgress"></div></div>
+<div id="refreshToast">
+  <div class="rt-dot"></div>
+  <span>รีเฟรชอัตโนมัติใน <span id="refreshCountdown">5:00</span></span>
+</div>
+</body>
+
+  <!-- Application JS — order matters, do not rearrange -->
+  <script src="js/login.js?v=3.2"></script>
+  <script src="js/admin.js?v=3.2"></script>
+  <script src="js/config.js?v=3.2"></script>
+  <script src="js/fiscal.js?v=3.2"></script>
+  <script src="js/charts.js?v=3.2"></script>
+  <script src="js/table.js?v=3.2"></script>
+  <script src="js/storage.js?v=3.2"></script>
+  <script src="js/ui.js?v=3.2"></script>
+  <script src="js/ai.js?v=3.2"></script>
+  <script src="js/fy_dashboard.js?v=3.2"></script>
+  <script src="js/app.js?v=3.2"></script>
+
+</body>
+</html>
