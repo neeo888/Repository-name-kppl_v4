@@ -314,12 +314,7 @@ function updateAll() {
     }
   }
   if (targetFile) {
-    countEstimate = allData.filter(d => 
-      d[5] === targetFile && (
-        (d[3] || '').includes('รอประมาณราคา') || (d[3] || '').startsWith('1)') ||
-        (d[4] || '').includes('รอประมาณราคา') || (d[4] || '').startsWith('1)')
-      )
-    ).length;
+    countEstimate = allData.filter(d => d[5] === targetFile).length;
   }
 
   const pendingCountEl = document.getElementById('uibPendingCount');
@@ -349,7 +344,7 @@ function updateAll() {
   const elPendingEstSub = document.getElementById('statPendingEstimateSub');
   if (elPendingEst) elPendingEst.textContent = countEstimate.toLocaleString();
   if (elPendingEstSub) {
-    elPendingEstSub.textContent = targetFile ? `คงเหลือจากไฟล์: ${targetFile}` : 'คงเหลือจากไฟล์นำเข้าล่าสุด';
+    elPendingEstSub.textContent = targetFile ? `จากไฟล์: ${targetFile}` : 'จากไฟล์นำเข้าล่าสุด';
   }
 
   const todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
