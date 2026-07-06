@@ -126,6 +126,7 @@ function lsBootData() {
       const cnt  = allData.length;
       const file = meta.lastFile   || (cnt ? 'MySQL DB' : 'ฐานข้อมูลว่าง');
       window.lastImportedFile = file;
+      window.lastFileTotal = meta.lastFileTotal || 0;
       updateAll();
 
       const dt   = meta.lastImport || new Date().toISOString();
@@ -466,6 +467,7 @@ function handleFile(file) {
       return da - db;
     });
 
+    window.lastFileTotal = data.length;
     updateAll();
     const now = new Date();
     const p   = n => String(n).padStart(2,'0');
@@ -504,6 +506,7 @@ function handleFile(file) {
           if (res.all_rows && res.all_rows.length) {
             allData = res.all_rows;
             window.lastImportedFile = file.name;
+            window.lastFileTotal = (res.meta && res.meta.lastFileTotal) ? res.meta.lastFileTotal : data.length;
             updateAll();
             lsSave(allData, file.name);
           }

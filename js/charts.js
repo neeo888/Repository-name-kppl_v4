@@ -312,9 +312,9 @@ function updateAll() {
     }
   }
 
-  // Calculate: Total rows in latest file
-  let latestFileTotal = 0;
-  if (targetFile) {
+  // Calculate: Total rows in latest file (including duplicates!)
+  let latestFileTotal = window.lastFileTotal || 0;
+  if (!latestFileTotal && targetFile) {
     latestFileTotal = allData.filter(d => d[5] === targetFile).length;
   }
 

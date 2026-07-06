@@ -107,7 +107,7 @@ window.supabaseLoadRows = async function() {
     // Fetch last import metadata from import_log
     const { data: logData, error: logError } = await supabaseClient
       .from('import_log')
-      .select('file_name, imported_at')
+      .select('file_name, rows_total, imported_at')
       .order('imported_at', { ascending: false })
       .limit(1);
 
@@ -128,7 +128,8 @@ window.supabaseLoadRows = async function() {
       meta: {
         rowCount: formattedRows.length,
         lastFile: lastLog ? lastLog.file_name : null,
-        lastImport: lastLog ? lastLog.imported_at : null
+        lastImport: lastLog ? lastLog.imported_at : null,
+        lastFileTotal: lastLog ? lastLog.rows_total : 0
       }
     };
   } catch (err) {
@@ -212,7 +213,8 @@ window.supabaseSaveRows = async function(rows, fileName) {
       dup,
       total_in_db: allRowsResult.rows.length,
       file: fileName,
-      all_rows: allRowsResult.rows
+      all_rows: allRowsResult.rows,
+      meta: allRowsResult.meta
     };
   } catch (err) {
     console.error('[Supabase] Save rows error:', err);
