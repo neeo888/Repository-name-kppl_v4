@@ -348,12 +348,15 @@ function updateAll() {
   document.getElementById('statTotal').textContent = latestFileTotal.toLocaleString();
   document.getElementById('statTotalSub').textContent = targetFile ? `ไฟล์: ${targetFile}` : 'ไฟล์นำเข้าล่าสุด';
 
-  // Card c4: งานนำเข้าล่าสุดที่คงเหลือ = จำนวนงานในไฟล์ล่าสุดที่ยังรอประมาณราคา
+  // Card c4: จำนวนงานสะสมปีงบประมาณ = จำนวนงานทั้งหมดที่นำเข้ามา ตัดยอดเป็น ปีงบประมาณทางรายการ
+  const currentFYVal = getFiscalYear();
+  const _fyTotalNow = (allFYData(allData)[currentFYVal] || []).length;
+
   const elPendingEst = document.getElementById('statPendingEstimate');
   const elPendingEstSub = document.getElementById('statPendingEstimateSub');
-  if (elPendingEst) elPendingEst.textContent = countEstimate.toLocaleString();
+  if (elPendingEst) elPendingEst.textContent = _fyTotalNow.toLocaleString();
   if (elPendingEstSub) {
-    elPendingEstSub.textContent = targetFile ? `ไฟล์: ${targetFile}` : 'ไฟล์นำเข้าล่าสุด';
+    elPendingEstSub.textContent = `ปีงบประมาณ: ${currentFYVal + 543}`;
   }
 
   // Card 1: งานที่ประมาณการวันนี้ = จำนวนงานก่อนไฟล์ล่าสุด - จำนวนงานไฟล์ล่าสุด (ยอดรวมนำเข้าทั้งหมด ไม่หักเลขซ้ำ)
