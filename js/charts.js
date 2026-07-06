@@ -360,8 +360,6 @@ function updateAll() {
   const filesList = [...new Set(allData.map(d => d[5]).filter(f => f && f !== 'BUILTIN_DATA' && f !== 'admin_sync'))];
   let pendingLatest = 0;
   let pendingPrevious = 0;
-  const isPendingDoc = d => (d[3] || '').includes('รอประมาณราคา') || (d[3] || '').startsWith('1)') ||
-                             (d[4] || '').includes('รอประมาณราคา') || (d[4] || '').startsWith('1)');
 
   if (filesList.length >= 1) {
     const latestFile = filesList[filesList.length - 1];
