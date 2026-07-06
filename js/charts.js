@@ -304,8 +304,6 @@ function moLabelShort(k) {
 function updateAll() {
   const total = allData.length;
 
-  // Pending Estimate Card & Top-Bar Count (Count from the latest imported file)
-  let countEstimate = 0;
   let targetFile = window.lastImportedFile;
   if (!targetFile || targetFile === 'MySQL DB' || targetFile === 'ฐานข้อมูลว่าง') {
     const files = allData.map(d => d[5]).filter(f => f && f !== 'BUILTIN_DATA' && f !== 'admin_sync');
@@ -313,8 +311,19 @@ function updateAll() {
       targetFile = files[files.length - 1];
     }
   }
+
+  // Calculate: Total rows in latest file
+  let latestFileTotal = 0;
   if (targetFile) {
-    countEstimate = allData.filter(d => d[5] === targetFile).length;
+    latestFileTotal = allData.filter(d => d[5] === targetFile).length;
+  }
+
+  // Calculate: Pending rows in latest file
+  let countEstimate = 0;
+  const isPendingDoc = d => (d[3] || '').includes('รอประมาณราคา') || (d[3] || '').startsWith('1)') ||
+                             (d[4] || '').includes('รอประมาณราคา') || (d[4] || '').startsWith('1)');
+  if (targetFile) {
+    countEstimate = allData.filter(d => d[5] === targetFile && isPendingDoc(d)).length;
   }
 
   const pendingCountEl = document.getElementById('uibPendingCount');
@@ -335,15 +344,16 @@ function updateAll() {
   const uniqDates = [...new Set(allData.map(d=>d[1]?.split(' ')[0]).filter(Boolean))];
   const avg = uniqDates.length ? (total/uniqDates.length).toFixed(1) : 0;
 
-  // Card 2: งานรอประมาณการคงเหลือ = จำนวนรายการทั้งหมดในไฟล์นำเข้าล่าสุดเท่านั้น
-  document.getElementById('statTotal').textContent = countEstimate.toLocaleString();
+  // Card 2: เอกสารนำเข้าล่าสุด = จำนวนรายการทั้งหมดในไฟล์นำเข้าล่าสุดเท่านั้น
+  document.getElementById('statTotal').textContent = latestFileTotal.toLocaleString();
   document.getElementById('statTotalSub').textContent = targetFile ? `ไฟล์: ${targetFile}` : 'ไฟล์นำเข้าล่าสุด';
 
+  // Card c4: งานนำเข้าล่าสุดที่คงเหลือ = จำนวนงานในไฟล์ล่าสุดที่ยังรอประมาณราคา
   const elPendingEst = document.getElementById('statPendingEstimate');
   const elPendingEstSub = document.getElementById('statPendingEstimateSub');
   if (elPendingEst) elPendingEst.textContent = countEstimate.toLocaleString();
   if (elPendingEstSub) {
-    elPendingEstSub.textContent = targetFile ? `จากไฟล์: ${targetFile}` : 'จากไฟล์นำเข้าล่าสุด';
+    elPendingEstSub.textContent = targetFile ? `ไฟล์: ${targetFile}` : 'ไฟล์นำเข้าล่าสุด';
   }
 
   // Card 1: งานที่ประมาณการวันนี้ = จำนวนงานคงเหลือจากไฟล์ก่อนหน้า - จำนวนงานคงเหลือจากไฟล์ล่าสุด
