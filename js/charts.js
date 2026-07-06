@@ -335,10 +335,9 @@ function updateAll() {
   const uniqDates = [...new Set(allData.map(d=>d[1]?.split(' ')[0]).filter(Boolean))];
   const avg = uniqDates.length ? (total/uniqDates.length).toFixed(1) : 0;
 
-  document.getElementById('statTotal').textContent = total.toLocaleString();
-  // Show FY total vs grand total
-  const _fyTotalNow = (allFYData(allData)[getFiscalYear()]||[]).length;
-  document.getElementById('statTotalSub').textContent = `FY นี้: ${_fyTotalNow} | รวมทั้งหมด: ${total.toLocaleString()}`;
+  // Card 2: งานรอประมาณการคงเหลือ = จำนวนรายการทั้งหมดในไฟล์นำเข้าล่าสุดเท่านั้น
+  document.getElementById('statTotal').textContent = countEstimate.toLocaleString();
+  document.getElementById('statTotalSub').textContent = targetFile ? `ไฟล์: ${targetFile}` : 'ไฟล์นำเข้าล่าสุด';
 
   const elPendingEst = document.getElementById('statPendingEstimate');
   const elPendingEstSub = document.getElementById('statPendingEstimateSub');
@@ -347,15 +346,30 @@ function updateAll() {
     elPendingEstSub.textContent = targetFile ? `จากไฟล์: ${targetFile}` : 'จากไฟล์นำเข้าล่าสุด';
   }
 
-  const todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
-  const estTodayCnt = allData.filter(d => d[1] && d[1].startsWith(todayStr)).length;
+  // Card 1: งานที่ประมาณการวันนี้ = จำนวนงานคงเหลือจากไฟล์ก่อนหน้า - จำนวนงานคงเหลือจากไฟล์ล่าสุด
+  const filesList = [...new Set(allData.map(d => d[5]).filter(f => f && f !== 'BUILTIN_DATA' && f !== 'admin_sync'))];
+  let pendingLatest = 0;
+  let pendingPrevious = 0;
+  const isPendingDoc = d => (d[3] || '').includes('รอประมาณราคา') || (d[3] || '').startsWith('1)') ||
+                             (d[4] || '').includes('รอประมาณราคา') || (d[4] || '').startsWith('1)');
+
+  if (filesList.length >= 1) {
+    const latestFile = filesList[filesList.length - 1];
+    pendingLatest = allData.filter(d => d[5] === latestFile && isPendingDoc(d)).length;
+  }
+  if (filesList.length >= 2) {
+    const previousFile = filesList[filesList.length - 2];
+    pendingPrevious = allData.filter(d => d[5] === previousFile && isPendingDoc(d)).length;
+  }
+  const estTodayCnt = Math.max(0, pendingPrevious - pendingLatest);
+
   const elEstToday = document.getElementById('statEstimatedToday');
   const elEstTodaySub = document.getElementById('statEstimatedTodaySub');
   if (elEstToday) elEstToday.textContent = estTodayCnt.toLocaleString();
   if (elEstTodaySub) {
-    const monthsTh = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-    const thaiYear = now.getFullYear() + 543;
-    elEstTodaySub.textContent = `ณ วันที่ ${now.getDate()} ${monthsTh[now.getMonth()]} ${thaiYear}`;
+    const prevName = filesList.length >= 2 ? filesList[filesList.length - 2].slice(-15) : 'ไม่มี';
+    const latName = filesList.length >= 1 ? filesList[filesList.length - 1].slice(-15) : 'ไม่มี';
+    elEstTodaySub.textContent = `เทียบไฟล์: ${prevName} vs ${latName}`;
   }
 
   document.getElementById('statContractors').textContent = ctSet.length;
