@@ -187,13 +187,12 @@ window.supabaseSaveRows = async function(rows, fileName) {
     const added = newRows.length;
     const dup = formattedRows.length - added;
 
-    if (newRows.length > 0) {
-      const { error: insertError } = await supabaseClient
-        .from('pipe_repair_docs')
-        .insert(newRows);
-      
-      if (insertError) throw insertError;
-    }
+    // Use upsert to insert new rows and update duplicates' source_file (and details) to the latest imported file
+    const { error: upsertError } = await supabaseClient
+      .from('pipe_repair_docs')
+      .upsert(formattedRows, { onConflict: 'job_id' });
+    
+    if (upsertError) throw upsertError;
 
     // Record import log
     await supabaseClient
