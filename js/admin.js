@@ -18,6 +18,7 @@
       return raw ? JSON.parse(raw) : _defaultUsers();
     } catch { return _defaultUsers(); }
   }
+  window._getUsers = _getUsers;
   function _saveUsers(users) {
     localStorage.setItem(USER_STORE, JSON.stringify(users));
     // sync กลับไปที่ USERS array ใน login.js
@@ -847,6 +848,8 @@
   window._adminInit = _addAdminButton;
 
 })();
+
+const _getUsers = () => window._getUsers ? window._getUsers() : [];
 
 // ════════════════════════════════════════════════════════════════
 //  MEMBER MANAGEMENT
