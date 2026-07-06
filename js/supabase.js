@@ -109,7 +109,7 @@ window.supabaseLoadRows = async function() {
       .from('import_log')
       .select('file_name, rows_total, imported_at')
       .order('imported_at', { ascending: false })
-      .limit(1);
+      .limit(2);
 
     const formattedRows = (rows || []).map(r => [
       String(r.job_id || ''),
@@ -121,6 +121,7 @@ window.supabaseLoadRows = async function() {
     ]);
 
     const lastLog = logData && logData[0] ? logData[0] : null;
+    const prevLog = logData && logData[1] ? logData[1] : null;
 
     return {
       ok: true,
@@ -129,7 +130,8 @@ window.supabaseLoadRows = async function() {
         rowCount: formattedRows.length,
         lastFile: lastLog ? lastLog.file_name : null,
         lastImport: lastLog ? lastLog.imported_at : null,
-        lastFileTotal: lastLog ? lastLog.rows_total : 0
+        lastFileTotal: lastLog ? lastLog.rows_total : 0,
+        prevFileTotal: prevLog ? prevLog.rows_total : 0
       }
     };
   } catch (err) {

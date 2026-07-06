@@ -356,20 +356,9 @@ function updateAll() {
     elPendingEstSub.textContent = targetFile ? `ไฟล์: ${targetFile}` : 'ไฟล์นำเข้าล่าสุด';
   }
 
-  // Card 1: งานที่ประมาณการวันนี้ = จำนวนงานคงเหลือจากไฟล์ก่อนหน้า - จำนวนงานคงเหลือจากไฟล์ล่าสุด
+  // Card 1: งานที่ประมาณการวันนี้ = จำนวนงานก่อนไฟล์ล่าสุด - จำนวนงานไฟล์ล่าสุด (ยอดรวมนำเข้าทั้งหมด ไม่หักเลขซ้ำ)
   const filesList = [...new Set(allData.map(d => d[5]).filter(f => f && f !== 'BUILTIN_DATA' && f !== 'admin_sync'))];
-  let pendingLatest = 0;
-  let pendingPrevious = 0;
-
-  if (filesList.length >= 1) {
-    const latestFile = filesList[filesList.length - 1];
-    pendingLatest = allData.filter(d => d[5] === latestFile && isPendingDoc(d)).length;
-  }
-  if (filesList.length >= 2) {
-    const previousFile = filesList[filesList.length - 2];
-    pendingPrevious = allData.filter(d => d[5] === previousFile && isPendingDoc(d)).length;
-  }
-  const estTodayCnt = Math.max(0, pendingPrevious - pendingLatest);
+  const estTodayCnt = Math.max(0, (window.prevFileTotal || 0) - (window.lastFileTotal || 0));
 
   const elEstToday = document.getElementById('statEstimatedToday');
   const elEstTodaySub = document.getElementById('statEstimatedTodaySub');
