@@ -25,7 +25,7 @@ function initCharts() {
     type:'line',
     data:{ labels:[], datasets:[
       {
-        label:'งาน', data:[],
+        label:'จำนวนงาน', data:[],
         borderColor:'#00f0ff',
         borderWidth:3,
         pointBackgroundColor:'#00f0ff',
@@ -38,16 +38,14 @@ function initCharts() {
         pointHoverBorderWidth:3,
         fill:true,
         backgroundColor: ctx => mkGrad(ctx, null, null,
-          'rgba(0,240,255,0.28)', 'rgba(0,100,200,0)'),
+          'rgba(0,240,255,0.22)', 'rgba(0,100,200,0)'),
         tension:0.42,
         _glowColor:'rgba(0,240,255,0.9)',
       },
-      // ── งานก่อนปิด: infer จาก running number ใน job ID ──
       {
-        label:'งานก่อนปิด', data:[],
+        label:'จำนวนช่าง', data:[],
         borderColor:'#ffab00',
         borderWidth:2.5,
-        borderDash:[6,4],
         pointBackgroundColor:'#ffab00',
         pointBorderColor:'#020814',
         pointBorderWidth:2,
@@ -58,32 +56,46 @@ function initCharts() {
         fill: false,
         tension:0.42,
         _glowColor:'rgba(255,171,0,0.8)',
+      },
+      {
+        label:'เอกสารรอประมาณราคา', data:[],
+        borderColor:'#ff007f',
+        borderWidth:2.5,
+        borderDash:[6,4],
+        pointBackgroundColor:'#ff007f',
+        pointBorderColor:'#020814',
+        pointBorderWidth:2,
+        pointRadius:4,
+        pointHoverRadius:8,
+        pointHoverBackgroundColor:'#fff',
+        pointHoverBorderColor:'#ff007f',
+        fill: false,
+        tension:0.42,
+        _glowColor:'rgba(255,0,127,0.8)',
       }
     ]},
     options:{
       responsive:true, maintainAspectRatio:true,
       interaction:{mode:'index', intersect:false},
       plugins:{
-        legend:{display:false},
+        legend:{
+          display:true,
+          position:'top',
+          labels:{
+            color:'#fff',
+            font:{ family:'Kanit', size:11 }
+          }
+        },
         tooltip:{
           ...TIP,
-          filter: item => item.datasetIndex === 0 || item.datasetIndex === 1,
           callbacks:{
             title: items => items[0].label,
             label: c => {
-              if (c.datasetIndex === 0) return `  📦 ปิดงาน: ${c.parsed.y.toLocaleString()} รายการ`;
-              if (c.datasetIndex === 1) return `  📋 เปิดงาน: ${c.parsed.y.toLocaleString()} รายการ`;
-            },
-            afterBody: items => {
-              const closed = items.find(i=>i.datasetIndex===0);
-              const opened = items.find(i=>i.datasetIndex===1);
-              if (closed && opened && opened.parsed.y > 0) {
-                const diff = closed.parsed.y - opened.parsed.y;
-                const sign = diff >= 0 ? '+' : '';
-                return [`  ─────────────────`, `  ผลต่าง: ${sign}${diff} รายการ`];
-              }
-              return [];
-            },
+              if (c.datasetIndex === 0) return `  📦 จำนวนงาน: ${c.parsed.y.toLocaleString()} รายการ`;
+              if (c.datasetIndex === 1) return `  👷 จำนวนช่าง: ${c.parsed.y.toLocaleString()} คน`;
+              if (c.datasetIndex === 2) return `  ⏳ รอประมาณการ: ${c.parsed.y.toLocaleString()} รายการ`;
+              return '';
+            }
           }
         },
       },
@@ -381,50 +393,41 @@ function updateAll() {
   document.getElementById('statAvgDay').textContent = avg;
   document.getElementById('statAvgSub').textContent = `จาก ${uniqDates.length} วัน`;
 
-  // ── Trend: ปิดงาน (จริง) + งานก่อนปิด (infer จาก running number) ──
-  const monthly = {};
-  allData.forEach(d=>{ if(d[1]){ const k=d[1].substring(0,7); monthly[k]=(monthly[k]||0)+1; } });
-  const mKeys = Object.keys(monthly).sort();
+  // ── Trend: สำหรับไฟล์ล่าสุดเท่านั้น (จำนวนงาน, จำนวนช่าง, เอกสารรอประมาณราคา) ──
+  const monthlyJobs = {};
+  const monthlyContractors = {};
+  const monthlyPending = {};
+
+  const isPendingDocTrend = d => (d[3] || '').includes('รอประมาณราคา') || (d[3] || '').startsWith('1)') ||
+                                 (d[4] || '').includes('รอประมาณราคา') || (d[4] || '').startsWith('1)');
+
+  const latFileTrend = window.lastImportedFile;
+  const useLatestFileTrend = latFileTrend && latFileTrend !== 'MySQL DB' && latFileTrend !== 'ฐานข้อมูลว่าง';
+  const trendRows = allData.filter(d => !useLatestFileTrend || d[5] === latFileTrend);
+
+  trendRows.forEach(d => {
+    if (d[1]) {
+      const k = d[1].substring(0, 7); // 'YYYY-MM'
+      monthlyJobs[k] = (monthlyJobs[k] || 0) + 1;
+      
+      if (!monthlyContractors[k]) {
+        monthlyContractors[k] = new Set();
+      }
+      if (d[2]) {
+        monthlyContractors[k].add(d[2]);
+      }
+
+      if (isPendingDocTrend(d)) {
+        monthlyPending[k] = (monthlyPending[k] || 0) + 1;
+      }
+    }
+  });
+
+  const mKeys = Object.keys(monthlyJobs).sort();
   trendChart.data.labels = mKeys.map(moLabel);
-  trendChart.data.datasets[0].data = mKeys.map(k=>monthly[k]);
-
-
-  // ── คำนวณ "งานก่อนปิด" จาก running number ──
-  // Job ID format: CC-XXXX-NUM/FY  → NUM เป็น running counter ในปีงบ
-  // แต่ละปีงบ: NUM ต่ำสุด ≈ ต.ค. (เดือนแรก), NUM สูงสุด ≈ ก.ย. (เดือนสุดท้าย)
-  const monthlyOpen = {};
-  // จัดกลุ่มข้อมูลตามปีงบ เพื่อ interpolate แยกกัน
-  const byFY = {};
-  allData.forEach(d => {
-    const m = (d[0]||'').match(/CC-\d+-(\d+)\/(\d+)/);
-    if (!m) return;
-    const num = parseInt(m[1]), fy = parseInt(m[2]);
-    if (!byFY[fy]) byFY[fy] = [];
-    byFY[fy].push(num);
-  });
-  // แปลง num → เดือนเปิดงาน ด้วย linear interpolation ต่อปีงบ
-  Object.entries(byFY).forEach(([fy, nums]) => {
-    fy = parseInt(fy);
-    const fyStartYear = fy - 1;           // FY2569 เริ่ม ต.ค. 2568
-    const fyStart = new Date(fyStartYear - 543, 9, 1);  // ต.ค. (พ.ศ.→ค.ศ.: -543)
-    const fyEnd   = new Date(fyStartYear - 543 + 1, 8, 30); // ก.ย. ปีถัดไป
-    const numMin  = Math.min(...nums);
-    const numMax  = Math.max(...nums);
-    const span    = numMax - numMin || 1;
-    const msSpan  = fyEnd - fyStart;
-
-    allData.forEach(d => {
-      const m2 = (d[0]||'').match(/CC-\d+-(\d+)\/(\d+)/);
-      if (!m2 || parseInt(m2[2]) !== fy) return;
-      const num = parseInt(m2[1]);
-      const t   = (num - numMin) / span;
-      const openDate = new Date(fyStart.getTime() + t * msSpan);
-      const k   = openDate.getFullYear() + '-' + String(openDate.getMonth()+1).padStart(2,'0');
-      monthlyOpen[k] = (monthlyOpen[k]||0) + 1;
-    });
-  });
-  // ใส่ข้อมูลลง dataset[2] ตาม labels เดิม
-  trendChart.data.datasets[1].data = mKeys.map(k => monthlyOpen[k] || null);
+  trendChart.data.datasets[0].data = mKeys.map(k => monthlyJobs[k]);
+  trendChart.data.datasets[1].data = mKeys.map(k => monthlyContractors[k] ? monthlyContractors[k].size : 0);
+  trendChart.data.datasets[2].data = mKeys.map(k => monthlyPending[k] || 0);
 
   trendChart.update();
 

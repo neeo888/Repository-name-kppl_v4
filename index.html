@@ -741,19 +741,12 @@
   <div class="section-label" data-section="charts"><span>กราฟวิเคราะห์</span></div>
   <div class="chart-grid-2" data-section="charts">
     <div class="panel">
-      <div class="panel-head"><div class="panel-title"><span class="icon">📊</span> แนวโน้มงานรายเดือน</div>
+      <div class="panel-head"><div class="panel-title"><span class="icon">📊</span> แนวโน้มข้อมูลไฟล์นำเข้าล่าสุด</div>
       <div class="panel-actions">
-        <span id="trendLegend" style="display:inline-flex;align-items:center;gap:10px;font-size:10px;font-family:var(--mono);color:rgba(200,230,255,0.7);margin-right:8px">
-          <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:18px;height:2.5px;background:#00f0ff;display:inline-block;border-radius:2px;box-shadow:0 0 6px #00f0ff88"></span>ปิดงาน</span>
-          <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:18px;height:0;border-top:2.5px dashed #ffab00;display:inline-block"></span>เปิดงาน*</span>
-        </span>
         <span class="chip">TREND</span><button class="export-btn" onclick="exportChart('trendChart','trend_monthly')">↓ PNG</button>
       </div></div>
       <div class="panel-body">
         <canvas id="trendChart" height="200"></canvas>
-        <div style="font-size:9px;color:rgba(150,180,210,0.45);margin-top:4px;font-family:var(--mono);padding:0 4px">
-          * เปิดงาน = ประมาณจากหมายเลขลำดับงาน (CC-XXXX-<strong style="color:rgba(255,171,0,0.6)">NUM</strong>/FY) · linear interpolation ต่อปีงบ
-        </div>
       </div>
     </div>
     <div class="panel">
@@ -867,18 +860,18 @@
 </div>
 </body>
 
-  <script src="js/supabase.js?v=5.0"></script>
-  <script src="js/login.js?v=5.0"></script>
-  <script src="js/admin.js?v=5.0"></script>
-  <script src="js/config.js?v=5.0"></script>
-  <script src="js/fiscal.js?v=5.0"></script>
-  <script src="js/charts.js?v=5.0"></script>
-  <script src="js/table.js?v=5.0"></script>
-  <script src="js/storage.js?v=5.0"></script>
-  <script src="js/ui.js?v=5.0"></script>
-  <script src="js/ai.js?v=5.0"></script>
-  <script src="js/fy_dashboard.js?v=5.0"></script>
-  <script src="js/app.js?v=5.0"></script>
+  <script src="js/supabase.js?v=5.2"></script>
+  <script src="js/login.js?v=5.2"></script>
+  <script src="js/admin.js?v=5.2"></script>
+  <script src="js/config.js?v=5.2"></script>
+  <script src="js/fiscal.js?v=5.2"></script>
+  <script src="js/charts.js?v=5.2"></script>
+  <script src="js/table.js?v=5.2"></script>
+  <script src="js/storage.js?v=5.2"></script>
+  <script src="js/ui.js?v=5.2"></script>
+  <script src="js/ai.js?v=5.2"></script>
+  <script src="js/fy_dashboard.js?v=5.2"></script>
+  <script src="js/app.js?v=5.2"></script>
 
 </body>
 </html>
