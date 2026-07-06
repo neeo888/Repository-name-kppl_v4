@@ -9,7 +9,7 @@ const SUPABASE_KEY_KEY = 'kppl_supabase_anon_key';
 
 // ── Default Fallback Credentials (Pre-configured) ──
 const DEFAULT_SUPABASE_URL = 'https://ybxwvqjtsopawosgqchi.supabase.co';
-const DEFAULT_SUPABASE_KEY = ''; // สามารถกรอก public anon key (Public Key) ตรงนี้ได้เพื่อความสะดวก
+const DEFAULT_SUPABASE_KEY = 'sb_publishable_6pAPeMJsu-m0uFgGvaTaAw_b7qO4nnl'; // สามารถกรอก public anon key (Public Key) ตรงนี้ได้เพื่อความสะดวก
 
 let supabaseClient = null;
 
