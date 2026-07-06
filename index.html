@@ -24,6 +24,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
 </head>
 
 <body>
@@ -362,6 +364,31 @@
       <span>Provincial Waterworks Authority · Region 10 · Phitsanulok</span>
     </div>
   </div>
+  <button id="supabaseSettingsBtn" class="supabase-settings-btn" onclick="openSupabaseSettingsModal()" style="position: absolute; bottom: 20px; right: 20px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 6px 12px; border-radius: 4px; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 6px; z-index: 1000;">
+    ⚙️ ตั้งค่า Supabase
+  </button>
+  </div>
+</div>
+
+<!-- Supabase Settings Modal -->
+<div id="supabaseSettingsModal" class="login-overlay" style="display: none; justify-content: center; align-items: center; z-index: 2000; background: rgba(0,0,0,0.85);">
+  <div class="login-container" style="max-width: 450px; min-height: auto; padding: 20px; border-radius: 8px; background: #0f172a; border: 1px solid rgba(0, 212, 255, 0.3);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <h3 style="color: #00d4ff; margin: 0; font-size: 1.1rem; font-family: Kanit, sans-serif;">⚙️ ตั้งค่าเชื่อมต่อ Supabase</h3>
+      <button onclick="closeSupabaseSettingsModal()" style="background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">✕</button>
+    </div>
+    <div style="margin-bottom: 15px; text-align: left;">
+      <label style="color: #94a3b8; font-size: 0.8rem; margin-bottom: 6px; display: block; font-family: Kanit, sans-serif;">Supabase URL</label>
+      <input type="text" id="supabaseUrlInput" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px;">
+    </div>
+    <div style="margin-bottom: 20px; text-align: left;">
+      <label style="color: #94a3b8; font-size: 0.8rem; margin-bottom: 6px; display: block; font-family: Kanit, sans-serif;">Supabase Anon Key (Public Key)</label>
+      <input type="password" id="supabaseKeyInput" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px;">
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <button class="login-btn" onclick="saveSupabaseSettings()" style="flex: 1; min-height: 40px; margin: 0; display: flex; justify-content: center; align-items: center; background: #00f0ff; color: #000; font-weight: bold;"><span class="login-btn-text">💾 บันทึก</span></button>
+      <button class="login-btn" onclick="closeSupabaseSettingsModal()" style="flex: 1; min-height: 40px; margin: 0; display: flex; justify-content: center; align-items: center; background: rgba(255,255,255,0.05); color: #fff;"><span class="login-btn-text">ยกเลิก</span></button>
+    </div>
   </div>
 </div>
 
@@ -834,17 +861,18 @@
 </body>
 
   <!-- Application JS — order matters, do not rearrange -->
-  <script src="js/login.js?v=3.2"></script>
-  <script src="js/admin.js?v=3.2"></script>
-  <script src="js/config.js?v=3.2"></script>
-  <script src="js/fiscal.js?v=3.2"></script>
-  <script src="js/charts.js?v=3.2"></script>
-  <script src="js/table.js?v=3.2"></script>
-  <script src="js/storage.js?v=3.2"></script>
-  <script src="js/ui.js?v=3.2"></script>
-  <script src="js/ai.js?v=3.2"></script>
-  <script src="js/fy_dashboard.js?v=3.2"></script>
-  <script src="js/app.js?v=3.2"></script>
+  <script src="js/supabase.js?v=4.0"></script>
+  <script src="js/login.js?v=4.0"></script>
+  <script src="js/admin.js?v=4.0"></script>
+  <script src="js/config.js?v=4.0"></script>
+  <script src="js/fiscal.js?v=4.0"></script>
+  <script src="js/charts.js?v=4.0"></script>
+  <script src="js/table.js?v=4.0"></script>
+  <script src="js/storage.js?v=4.0"></script>
+  <script src="js/ui.js?v=4.0"></script>
+  <script src="js/ai.js?v=4.0"></script>
+  <script src="js/fy_dashboard.js?v=4.0"></script>
+  <script src="js/app.js?v=4.0"></script>
 
 </body>
 </html>

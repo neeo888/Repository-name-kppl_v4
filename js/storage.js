@@ -17,6 +17,9 @@ const API_BASE = './api';   // หรือ '/kppl_v2/api' ตาม path บน
  * @returns {Promise<{ok,added,dup,total_in_db}|{ok:false,error}>}
  */
 async function apiSaveRows(rows, fileName) {
+  if (typeof supabaseSaveRows === 'function') {
+    return await supabaseSaveRows(rows, fileName);
+  }
   const res = await fetch(`${API_BASE}/save_rows.php`, {
     method : 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -38,6 +41,9 @@ async function apiSaveRows(rows, fileName) {
  * @returns {Promise<{ok,rows,meta}|{ok:false,rows:[]}>}
  */
 async function apiLoadRows() {
+  if (typeof supabaseLoadRows === 'function') {
+    return await supabaseLoadRows();
+  }
   const sess = JSON.parse(localStorage.getItem('kppl_session') || '{}');
   const params = new URLSearchParams();
   if (sess.user)   params.append('user', sess.user);

@@ -688,12 +688,14 @@
 
     try {
       const API = (typeof API_BASE !== 'undefined') ? API_BASE : './api';
-      const res = await fetch(`${API}/status.php`, { cache:'no-store' });
-      const data = await res.json();
+      const data = (typeof supabaseGetStatus === 'function')
+        ? await supabaseGetStatus()
+        : await (await fetch(`${API}/status.php`, { cache:'no-store' })).json();
       if (data.ok !== false) {
         const rows = data.total_rows ?? '?';
         if (statusEl) statusEl.className = 'admin-info-box';
-        if (statusEl) statusEl.innerHTML = `✅ เชื่อมต่อ MySQL สำเร็จ &nbsp;·&nbsp; มีข้อมูล <strong>${rows}</strong> รายการ`;
+        const dbType = (typeof supabaseGetStatus === 'function') ? 'Supabase' : 'MySQL';
+        if (statusEl) statusEl.innerHTML = `✅ เชื่อมต่อ ${dbType} สำเร็จ &nbsp;·&nbsp; มีข้อมูล <strong>${rows}</strong> รายการ`;
         if (logEl) logEl.innerHTML = `
           <div class="admin-log-item"><span class="admin-log-time">${new Date().toTimeString().slice(0,8)}</span><span class="admin-log-msg ok">Connection OK</span></div>
           <div class="admin-log-item"><span class="admin-log-time">rows</span><span class="admin-log-msg info">${rows}</span></div>
@@ -718,11 +720,12 @@
     try {
       const API = (typeof API_BASE !== 'undefined') ? API_BASE : './api';
       const PW  = (typeof IMPORT_PASSWORD_JS !== 'undefined') ? IMPORT_PASSWORD_JS : '121212';
-      const res = await fetch(`${API}/save_rows.php`, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ password: PW, fileName: 'admin_sync', rows }),
-      });
-      const data = await res.json();
+      const data = (typeof supabaseSaveRows === 'function')
+        ? await supabaseSaveRows(rows, 'admin_sync')
+        : await (await fetch(`${API}/save_rows.php`, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ password: PW, fileName: 'admin_sync', rows }),
+          })).json();
       if (data.ok) {
         adminToast(`Sync สำเร็จ — เพิ่ม ${data.added} รายการ ซ้ำ ${data.dup}`, 'ok');
         _addLog(`Sync OK — added:${data.added} dup:${data.dup} total:${data.total_in_db}`, 'ok');
@@ -856,8 +859,9 @@ window.adminRenderUsers = async function () {
   el.innerHTML = '<div class="admin-info-box">กำลังโหลดรายชื่อสมาชิก...</div>';
 
   try {
-    const res = await fetch('api/users.php');
-    const data = await res.json();
+    const data = (typeof supabaseListUsers === 'function')
+      ? await supabaseListUsers()
+      : await (await fetch('api/users.php')).json();
     if (!data.success) {
       el.innerHTML = `<div class="admin-info-box">${data.error || 'โหลดข้อมูลล้มเหลว'}</div>`;
       return;
@@ -979,26 +983,32 @@ window.adminAddUser = function () {
   if (!uname) { adminToast('กรุณากรอก Username', 'warn'); return; }
   if (!pass)  { adminToast('กรุณากรอก Password', 'warn'); return; }
 
-  fetch('api/register.php', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      first_name: name || uname,
-      last_name: '',
-      employee_id: uname,
-      branch: 'กปภ.สาขาพิษณุโลก',
-      password: pass
-    })
-  })
-  .then(r => r.json())
+  const regPromise = (typeof supabaseRegister === 'function')
+    ? supabaseRegister(name || uname, '', uname, 'กปภ.สาขาพิษณุโลก', pass)
+    : fetch('api/register.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          first_name: name || uname,
+          last_name: '',
+          employee_id: uname,
+          branch: 'กปภ.สาขาพิษณุโลก',
+          password: pass
+        })
+      }).then(r => r.json());
+
+  regPromise
   .then(res => {
     if (res.success) {
       if (role !== 'user') {
-        fetch('api/users.php?action=change_role', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ employee_id: uname, role: role })
-        }).then(() => adminRenderUsers());
+        const rolePromise = (typeof supabaseChangeUserRole === 'function')
+          ? supabaseChangeUserRole(uname, role)
+          : fetch('api/users.php?action=change_role', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ employee_id: uname, role: role })
+            });
+        rolePromise.then(() => adminRenderUsers());
       } else {
         adminRenderUsers();
       }
@@ -1015,12 +1025,15 @@ window.adminAddUser = function () {
 };
 
 window.adminApproveUser = function (uname) {
-  fetch('api/users.php?action=toggle_approve', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ employee_id: uname, approved: 1 })
-  })
-  .then(r => r.json())
+  const approvePromise = (typeof supabaseToggleApproveUser === 'function')
+    ? supabaseToggleApproveUser(uname, true)
+    : fetch('api/users.php?action=toggle_approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employee_id: uname, approved: 1 })
+      }).then(r => r.json());
+
+  approvePromise
   .then(res => {
     if (res.success) {
       adminRenderUsers();
@@ -1033,12 +1046,15 @@ window.adminApproveUser = function (uname) {
 };
 
 window.adminRevokeUser = function (uname) {
-  fetch('api/users.php?action=toggle_approve', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ employee_id: uname, approved: 0 })
-  })
-  .then(r => r.json())
+  const revokePromise = (typeof supabaseToggleApproveUser === 'function')
+    ? supabaseToggleApproveUser(uname, false)
+    : fetch('api/users.php?action=toggle_approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employee_id: uname, approved: 0 })
+      }).then(r => r.json());
+
+  revokePromise
   .then(res => {
     if (res.success) {
       adminRenderUsers();
@@ -1051,12 +1067,15 @@ window.adminRevokeUser = function (uname) {
 };
 
 window.adminChangeRole = function (uname, newRole) {
-  fetch('api/users.php?action=change_role', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ employee_id: uname, role: newRole })
-  })
-  .then(r => r.json())
+  const rolePromise = (typeof supabaseChangeUserRole === 'function')
+    ? supabaseChangeUserRole(uname, newRole)
+    : fetch('api/users.php?action=change_role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employee_id: uname, role: newRole })
+      }).then(r => r.json());
+
+  rolePromise
   .then(res => {
     if (res.success) {
       adminRenderUsers();
@@ -1071,12 +1090,15 @@ window.adminChangeRole = function (uname, newRole) {
 
 window.adminDeleteUser = function (uname) {
   if (!confirm(`ยืนยันลบสมาชิก "${uname}" ออกจากระบบ?`)) return;
-  fetch('api/users.php?action=delete', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ employee_id: uname })
-  })
-  .then(r => r.json())
+  const deletePromise = (typeof supabaseDeleteUser === 'function')
+    ? supabaseDeleteUser(uname)
+    : fetch('api/users.php?action=delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employee_id: uname })
+      }).then(r => r.json());
+
+  deletePromise
   .then(res => {
     if (res.success) {
       adminRenderUsers();
@@ -1432,10 +1454,11 @@ window.adminLoadSyncStatus = async function () {
     const API = (typeof API_BASE !== 'undefined') ? API_BASE : './api';
     const PW  = (typeof CRON_SECRET !== 'undefined') ? CRON_SECRET : '';
     // ดึง secret จาก PHP — ใช้ status.php แทนเพราะ token ไม่ expose ใน JS
-    const res  = await fetch(`${API}/sync_status.php?token=kppl_cron_secret_2025_plk&limit=5`, { cache:'no-store' });
-    const data = await res.json();
+    const data = (typeof supabaseGetSyncStatus === 'function')
+      ? await supabaseGetSyncStatus()
+      : await (await fetch(`${API}/sync_status.php?token=kppl_cron_secret_2025_plk&limit=5`, { cache:'no-store' })).json();
 
-    if (!data.ok) throw new Error(data.error);
+    if (!data.ok) throw new Error(data.error || 'Sync failed');
 
     // badge แหล่งข้อมูล
     const src = data.source?.type || 'mock';
@@ -1495,11 +1518,12 @@ window.adminRunSync = async function (mode) {
 
   try {
     const API = (typeof API_BASE !== 'undefined') ? API_BASE : './api';
-    const res  = await fetch(
-      `${API}/auto_fetch.php?token=kppl_cron_secret_2025_plk&mode=${mode}`,
-      { cache: 'no-store' }
-    );
-    const data = await res.json();
+    const data = (typeof supabaseTriggerAutoFetch === 'function')
+      ? await supabaseTriggerAutoFetch(mode)
+      : await (await fetch(
+          `${API}/auto_fetch.php?token=kppl_cron_secret_2025_plk&mode=${mode}`,
+          { cache: 'no-store' }
+        )).json();
 
     clearInterval(ticker);
     if (progBar) progBar.style.width = '100%';
@@ -1567,8 +1591,9 @@ window.adminLoadSyncLogs = async function () {
 
   try {
     const API = (typeof API_BASE !== 'undefined') ? API_BASE : './api';
-    const res  = await fetch(`${API}/sync_status.php?token=kppl_cron_secret_2025_plk&limit=20`, { cache:'no-store' });
-    const data = await res.json();
+    const data = (typeof supabaseGetSyncStatus === 'function')
+      ? await supabaseGetSyncStatus()
+      : await (await fetch(`${API}/sync_status.php?token=kppl_cron_secret_2025_plk&limit=20`, { cache:'no-store' })).json();
     adminRenderSyncLogs(data.logs || []);
   } catch(e) {
     el.innerHTML = `<div class="admin-log-item"><span class="admin-log-msg err">${e.message}</span></div>`;

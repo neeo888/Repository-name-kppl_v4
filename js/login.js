@@ -155,19 +155,22 @@
       if (btnText) btnText.textContent = 'กำลังลงทะเบียน...';
     }
     
-    // Call Register API
-    fetch('api/register.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        first_name: first,
-        last_name: last,
-        employee_id: empId,
-        branch: branch,
-        password: pass
-      })
-    })
-    .then(r => r.json())
+    // Call Register API (Supabase)
+    const regPromise = (typeof supabaseRegister === 'function')
+      ? supabaseRegister(first, last, empId, branch, pass)
+      : fetch('api/register.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            first_name: first,
+            last_name: last,
+            employee_id: empId,
+            branch: branch,
+            password: pass
+          })
+        }).then(r => r.json());
+
+    regPromise
     .then(res => {
       if (btn) {
         btn.classList.remove('loading');
@@ -254,18 +257,21 @@
       if (btnText) btnText.textContent = 'กำลังตรวจสอบ...';
     }
 
-    // Fetch login API
-    fetch('api/login.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ employee_id: u, password: p })
-    })
-    .then(r => {
-      if (!r.ok) {
-        return r.text().then(t => { throw new Error(t); });
-      }
-      return r.json();
-    })
+    // Fetch login API (Supabase)
+    const loginPromise = (typeof supabaseLogin === 'function')
+      ? supabaseLogin(u, p)
+      : fetch('api/login.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ employee_id: u, password: p })
+        }).then(r => {
+          if (!r.ok) {
+            return r.text().then(t => { throw new Error(t); });
+          }
+          return r.json();
+        });
+
+    loginPromise
     .then(res => {
       if (res.success) {
         // Handle Remember Me
