@@ -335,7 +335,9 @@ function updateAll() {
   const now = new Date();
 
   // ── Stats ──
-  const ctSet = [...new Set(allData.map(d=>d[2]).filter(Boolean))];
+  const latCt = window.lastImportedFile;
+  const useLatestFileCt = latCt && latCt !== 'MySQL DB' && latCt !== 'ฐานข้อมูลว่าง';
+  const ctSet = [...new Set(allData.filter(d => !useLatestFileCt || d[5] === latCt).map(d=>d[2]).filter(Boolean))];
   const ctCounts = {};
   allData.forEach(d=>{ if(d[2]) ctCounts[d[2]]=(ctCounts[d[2]]||0)+1; });
   const topCt = Object.entries(ctCounts).sort((a,b)=>b[1]-a[1])[0];
