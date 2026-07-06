@@ -490,17 +490,11 @@ function handleFile(file) {
 
     const extra = sheetInfo ? ` · ${sheetInfo}` : '';
 
-    if (addedCount === 0) {
-      status.className = 'import-status';
-      status.innerHTML = `<span style="color:var(--amber)">⚠️ ไม่มีรายการใหม่ — ข้อมูล ${data.length} รายการมีอยู่แล้วทั้งหมด${extra}</span>`;
-      return;
-    }
-
     // ── ส่งไป MySQL server ──
     status.className = 'import-status';
-    status.innerHTML = `<span style="color:var(--cyan)">⏳ กำลังบันทึก ${addedCount} รายการลง database…</span>`;
+    status.innerHTML = `<span style="color:var(--cyan)">⏳ กำลังประมวลผลข้อมูล ${data.length} รายการลง database…</span>`;
 
-    apiSaveRows(newRecs, file.name)
+    apiSaveRows(data, file.name)
       .then(res => {
         if (res.ok) {
           // ✅ อัพเดท allData ด้วยข้อมูลทั้งหมดจาก DB ทันที
