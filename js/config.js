@@ -199,3 +199,7 @@ Chart.register(glowPlugin);
 //  TEAM COLOR PALETTE
 // ════════════════════════════════════════════════════════════════
 
+
+// �� Supabase Config ��
+const SUPABASE_URL = 'https://ybxwvqjtsopawosgqchi.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_6pAPeMJsu-m0uFgGvaTaAw_b7qO4nnl';
