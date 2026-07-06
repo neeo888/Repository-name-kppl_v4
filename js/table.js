@@ -36,7 +36,9 @@ function setTableTab(tab) {
 
 function updateTableTabBadges() {
   if (!allData) return;
-  const countAll = allData.length;
+  const lat = window.lastImportedFile;
+  const isLatestFile = (f) => !lat || lat === 'MySQL DB' || lat === 'ฐานข้อมูลว่าง' || f === lat;
+  const countAll = allData.filter(d => isLatestFile(d[5])).length;
   const countEstimate = allData.filter(d => 
     (d[3] || '').includes('รอประมาณราคา') || (d[3] || '').startsWith('1)') ||
     (d[4] || '').includes('รอประมาณราคา') || (d[4] || '').startsWith('1)')
@@ -169,7 +171,11 @@ function filterAndRender() {
 
     // Tab filter
     let mTab = true;
-    if (activeTableTab === 'estimate') {
+    if (activeTableTab === 'all') {
+      const lat = window.lastImportedFile;
+      const isLatestFile = !lat || lat === 'MySQL DB' || lat === 'ฐานข้อมูลว่าง' || d[5] === lat;
+      mTab = isLatestFile;
+    } else if (activeTableTab === 'estimate') {
       mTab = (d[3] || '').includes('รอประมาณราคา') || (d[3] || '').startsWith('1)') ||
              (d[4] || '').includes('รอประมาณราคา') || (d[4] || '').startsWith('1)');
     } else if (activeTableTab === 'set') {
