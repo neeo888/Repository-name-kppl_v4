@@ -358,7 +358,7 @@ function updateAll() {
 
   // Card 1: งานที่ประมาณการวันนี้ = จำนวนงานก่อนไฟล์ล่าสุด - จำนวนงานไฟล์ล่าสุด (ยอดรวมนำเข้าทั้งหมด ไม่หักเลขซ้ำ)
   const filesList = [...new Set(allData.map(d => d[5]).filter(f => f && f !== 'BUILTIN_DATA' && f !== 'admin_sync'))];
-  const estTodayCnt = Math.abs((window.prevFileTotal || 0) - (window.lastFileTotal || 0));
+  const estTodayCnt = (window.lastFileTotal || 0) - (window.prevFileTotal || 0);
 
   const elEstToday = document.getElementById('statEstimatedToday');
   const elEstTodaySub = document.getElementById('statEstimatedTodaySub');
