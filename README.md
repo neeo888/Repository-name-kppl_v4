@@ -1,5 +1,19 @@
 # กปภ. พิษณุโลก — Dashboard v4
 
+## การตั้งค่า Login บน Vercel
+
+Login ใช้ Node.js Vercel Functions ภายใต้ `/api` ส่วน PHP เก็บไว้ชั่วคราวสำหรับ
+ระบบ MySQL เดิมและไม่ได้ถูกใช้โดย Login บน Vercel
+
+1. รัน `sql/vercel_auth_migration.sql` หนึ่งครั้งใน Supabase SQL Editor
+2. ตั้งค่าตัวแปรจาก `.env.example` ใน Vercel ทั้ง Preview และ Production
+3. Deploy แล้วเรียก `POST /api/setup-admin` หนึ่งครั้ง พร้อม header
+   `Authorization: Bearer <KPPL_SETUP_SECRET>`
+4. หลังสร้าง Admin สำเร็จ ให้ลบ `KPPL_ADMIN_PASSWORD` และ
+   `KPPL_SETUP_SECRET` ออกจาก Vercel
+
+ห้ามนำ `SUPABASE_SERVICE_ROLE_KEY` ไปใช้ใน JavaScript ฝั่ง browser หรือ commit เข้า Git
+
 Dashboard สำหรับติดตามเอกสารงานซ่อมท่อ ใช้ PHP 8, MySQL และ server-side session authentication
 
 ## การตั้งค่า

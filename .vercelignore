@@ -1,0 +1,9 @@
+.env*
+.git
+.github
+api/*.php
+cron
+scripts
+sql
+README.md
+fiveserver.config.js

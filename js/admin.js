@@ -834,7 +834,7 @@ window.adminRenderUsers = async function () {
   el.innerHTML = '<div class="admin-info-box">กำลังโหลดรายชื่อสมาชิก...</div>';
 
   try {
-    const data = await (await fetch('api/users.php', { cache: 'no-store' })).json();
+    const data = await (await fetch('/api/users', { cache: 'no-store' })).json();
     if (!data.success) {
       el.innerHTML = `<div class="admin-info-box">${data.error || 'โหลดข้อมูลล้มเหลว'}</div>`;
       return;
@@ -959,7 +959,7 @@ window.adminAddUser = function () {
   if (!uname) { adminToast('กรุณากรอก Username', 'warn'); return; }
   if (!pass)  { adminToast('กรุณากรอก Password', 'warn'); return; }
 
-  const regPromise = fetch('api/users.php?action=create', {
+  const regPromise = fetch('/api/users?action=create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -989,9 +989,7 @@ window.adminAddUser = function () {
 };
 
 window.adminApproveUser = function (uname) {
-  const approvePromise = (typeof supabaseToggleApproveUser === 'function')
-    ? supabaseToggleApproveUser(uname, true)
-    : fetch('api/users.php?action=toggle_approve', {
+  const approvePromise = fetch('/api/users?action=toggle_approve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ employee_id: uname, approved: 1 })
@@ -1010,9 +1008,7 @@ window.adminApproveUser = function (uname) {
 };
 
 window.adminRevokeUser = function (uname) {
-  const revokePromise = (typeof supabaseToggleApproveUser === 'function')
-    ? supabaseToggleApproveUser(uname, false)
-    : fetch('api/users.php?action=toggle_approve', {
+  const revokePromise = fetch('/api/users?action=toggle_approve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ employee_id: uname, approved: 0 })
@@ -1031,9 +1027,7 @@ window.adminRevokeUser = function (uname) {
 };
 
 window.adminChangeRole = function (uname, newRole) {
-  const rolePromise = (typeof supabaseChangeUserRole === 'function')
-    ? supabaseChangeUserRole(uname, newRole)
-    : fetch('api/users.php?action=change_role', {
+  const rolePromise = fetch('/api/users?action=change_role', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ employee_id: uname, role: newRole })
@@ -1065,7 +1059,7 @@ window.adminResetUserPassword = function (uname) {
     return;
   }
 
-  fetch('api/users.php?action=reset_password', {
+  fetch('/api/users?action=reset_password', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ employee_id: uname, password })
@@ -1081,9 +1075,7 @@ window.adminResetUserPassword = function (uname) {
 
 window.adminDeleteUser = function (uname) {
   if (!confirm(`ยืนยันลบสมาชิก "${uname}" ออกจากระบบ?`)) return;
-  const deletePromise = (typeof supabaseDeleteUser === 'function')
-    ? supabaseDeleteUser(uname)
-    : fetch('api/users.php?action=delete', {
+  const deletePromise = fetch('/api/users?action=delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ employee_id: uname })

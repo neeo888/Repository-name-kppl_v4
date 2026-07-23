@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════
    กปภ.พิษณุโลก — js/login.js
-   Login & Registration Gate via Local MySQL Database
+   Login & Registration Gate via server-side Vercel Functions
    ═══════════════════════════════════════════════════════════════ */
 
 (function () {
@@ -119,8 +119,8 @@
       return;
     }
     
-    if (pass.length < 6) {
-      if (errMsg) errMsg.textContent = 'รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร';
+    if (pass.length < 12) {
+      if (errMsg) errMsg.textContent = 'รหัสผ่านต้องมีความยาวอย่างน้อย 12 ตัวอักษร';
       if (errBox) errBox.style.display = 'flex';
       return;
     }
@@ -139,7 +139,7 @@
       if (btnText) btnText.textContent = 'กำลังลงทะเบียน...';
     }
     
-    const regPromise = fetch('api/register.php', {
+    const regPromise = fetch('/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -238,7 +238,7 @@
       if (btnText) btnText.textContent = 'กำลังตรวจสอบ...';
     }
 
-    const loginPromise = fetch('api/login.php', {
+    const loginPromise = fetch('/api/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ employee_id: u, password: p })
@@ -307,7 +307,7 @@
 
   // ── Logout action ─────────────────────────────────────────────
   window.doLogout = async function () {
-    try { await fetch('api/session.php', { method: 'POST' }); } catch {}
+    try { await fetch('/api/session', { method: 'POST' }); } catch {}
     setCurrentUser(null);
     // reset fields
     const u = document.getElementById('loginUser');
@@ -348,7 +348,7 @@
   // ── Boot: check session + fill remembered credentials ─────────
   document.addEventListener('DOMContentLoaded', async function () {
     try {
-      const response = await fetch('api/session.php', { cache: 'no-store' });
+      const response = await fetch('/api/session', { cache: 'no-store' });
       const session = await response.json();
       if (!response.ok || !session.authenticated) throw new Error('No active session');
       setCurrentUser(session.user);
