@@ -7,10 +7,10 @@
 require_once __DIR__ . '/config.php';
 
 if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] !== 'POST') jsonOut(['error'=>'POST only'],405);
+requireAdmin();
 
 $body = json_decode(file_get_contents('php://input'), true);
 if (!$body) jsonOut(['error'=>'Invalid JSON'],400);
-if (($body['password']??'') !== IMPORT_PASSWORD) jsonOut(['error'=>'รหัสผ่านผิด'],403);
 
 $rows     = $body['rows']     ?? [];
 $fileName = trim($body['fileName'] ?? 'unknown');
@@ -97,5 +97,5 @@ try {
 
 } catch (PDOException $e) {
     if (isset($db) && $db->inTransaction()) $db->rollBack();
-    jsonOut(['error'=>'DB: '.$e->getMessage()],500);
+    safeError($e, 'save_rows');
 }

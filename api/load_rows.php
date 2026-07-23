@@ -12,12 +12,13 @@
 require_once __DIR__ . '/config.php';
 
 if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] !== 'GET') jsonOut(['error'=>'GET only'],405);
+$user = requireUser();
 
 try {
     $db = getDB();   // ถ้า connect ไม่ได้ → throw → ok:false
 
-    $role = $_GET['role'] ?? '';
-    $name = $_GET['name'] ?? '';
+    $role = $user['role'] ?? '';
+    $name = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
 
     if ($role === 'contractor' && !empty($name)) {
         $parts = array_filter(explode(' ', $name));
@@ -83,11 +84,10 @@ try {
     // เชื่อม DB ไม่ได้เลย → ok:false → JS จะ fallback localStorage
     http_response_code(200);   // ยังคืน 200 เพื่อให้ JS อ่าน JSON ได้
     header('Content-Type: application/json; charset=utf-8');
-    header('Access-Control-Allow-Origin: ' . ALLOWED_ORIGIN);
     echo json_encode([
         'ok'    => false,
         'rows'  => [],
         'meta'  => ['rowCount' => 0],
-        'error' => 'DB connection failed: ' . $e->getMessage(),
+        'error' => 'Database connection failed',
     ], JSON_UNESCAPED_UNICODE);
 }

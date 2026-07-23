@@ -8,9 +8,7 @@
  */
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/fetch_config.php';
-
-$token = $_GET['token'] ?? '';
-if ($token !== CRON_SECRET) jsonOut(['ok' => false, 'error' => 'Unauthorized'], 403);
+requireAdmin();
 
 $limit = min((int)($_GET['limit'] ?? 20), 100);
 

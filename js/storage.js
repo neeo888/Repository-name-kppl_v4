@@ -17,14 +17,10 @@ const API_BASE = './api';   // หรือ '/kppl_v2/api' ตาม path บน
  * @returns {Promise<{ok,added,dup,total_in_db}|{ok:false,error}>}
  */
 async function apiSaveRows(rows, fileName) {
-  if (typeof supabaseSaveRows === 'function') {
-    return await supabaseSaveRows(rows, fileName);
-  }
   const res = await fetch(`${API_BASE}/save_rows.php`, {
     method : 'POST',
     headers: { 'Content-Type': 'application/json' },
     body   : JSON.stringify({
-      password: IMPORT_PASSWORD_JS,
       fileName,
       rows,
     }),
@@ -41,16 +37,7 @@ async function apiSaveRows(rows, fileName) {
  * @returns {Promise<{ok,rows,meta}|{ok:false,rows:[]}>}
  */
 async function apiLoadRows() {
-  if (typeof supabaseLoadRows === 'function') {
-    return await supabaseLoadRows();
-  }
-  const sess = JSON.parse(localStorage.getItem('kppl_session') || '{}');
-  const params = new URLSearchParams();
-  if (sess.user)   params.append('user', sess.user);
-  if (sess.role)   params.append('role', sess.role);
-  if (sess.name)   params.append('name', sess.name);
-
-  const res = await fetch(`${API_BASE}/load_rows.php?${params.toString()}`, { cache: 'no-store' });
+  const res = await fetch(`${API_BASE}/load_rows.php`, { cache: 'no-store' });
   if (!res.ok) {
     let txt = '';
     try { txt = await res.text(); } catch(e) {}
@@ -63,11 +50,6 @@ async function apiLoadRows() {
   return res.json();
 }
 
-// รหัสผ่านฝั่ง JS (ต้องตรงกับ IMPORT_PASSWORD ใน config.php)
-const IMPORT_PASSWORD_JS = (() => {
-  try { return localStorage.getItem('kppl_pw_cache') || '121212'; }
-  catch { return '121212'; }
-})();
 
 // ════════════════════════════════
 //  FILE IMPORT
@@ -641,64 +623,22 @@ function handleFile(file) {
 
 
 // ════════════════════════════════════════════════════════════════
-//  PASSWORD GATE — รหัสผ่านสำหรับนำเข้าข้อมูล
+//  SERVER-AUTHORIZED IMPORT — only the server-verified admin role may import
 // ════════════════════════════════════════════════════════════════
 
-const IMPORT_PASSWORD = '121212';
 let _pendingFiles = null;   // ไฟล์ที่รอ password confirm
 
 function pwShowModal(files) {
-  _pendingFiles = files;
-  const existing = document.getElementById('pwModal');
-  if (existing) existing.remove();
-
-  const modal = document.createElement('div');
-  modal.id = 'pwModal';
-  modal.className = 'modal-overlay';
-  modal.innerHTML = `
-    <div class="modal-box" style="max-width:380px">
-      <h2>🔒 ยืนยันตัวตน</h2>
-      <p>กรอกรหัสผ่านเพื่อนำเข้าข้อมูล<br>
-         <span style="color:var(--amber);font-family:var(--mono);font-size:11px">
-           ไฟล์: ${[...files].map(f=>f.name).join(', ')}
-         </span>
-      </p>
-      <div class="modal-field">
-        <label>รหัสผ่าน</label>
-        <input id="pwInput" type="password" placeholder="••••••"
-               autofocus autocomplete="off"
-               onkeydown="if(event.key==='Enter') pwConfirm()">
-      </div>
-      <div id="pwError" style="color:var(--red);font-size:11px;font-family:var(--mono);
-           margin-top:-8px;margin-bottom:12px;display:none">
-        ❌ รหัสผ่านไม่ถูกต้อง
-      </div>
-      <div class="modal-actions">
-        <button class="modal-btn modal-btn-primary" onclick="pwConfirm()">✅ ยืนยัน</button>
-        <button class="modal-btn modal-btn-skip" onclick="pwCancel()">ยกเลิก</button>
-      </div>
-    </div>`;
-  document.body.appendChild(modal);
-  setTimeout(()=>document.getElementById('pwInput').focus(), 100);
+  if (typeof isAdmin !== 'function' || !isAdmin()) {
+    alert('เฉพาะผู้ดูแลระบบเท่านั้นที่นำเข้าข้อมูลได้');
+    return;
+  }
+  [...files].forEach(handleFile);
 }
 
 function pwConfirm() {
-  const val = document.getElementById('pwInput').value;
-  if (val !== IMPORT_PASSWORD) {
-    const err = document.getElementById('pwError');
-    err.style.display = 'block';
-    document.getElementById('pwInput').value = '';
-    document.getElementById('pwInput').focus();
-    // shake animation
-    const box = document.querySelector('#pwModal .modal-box');
-    box.style.animation = 'none';
-    box.style.transform = 'translateX(-8px)';
-    setTimeout(()=>{ box.style.transform='translateX(8px)'; }, 80);
-    setTimeout(()=>{ box.style.transform='translateX(0)'; }, 160);
-    return;
-  }
-  document.getElementById('pwModal').remove();
-  // ผ่าน password → นำเข้าไฟล์
+  if (typeof isAdmin !== 'function' || !isAdmin()) return;
+  document.getElementById('pwModal')?.remove();
   if (_pendingFiles) {
     [..._pendingFiles].forEach(handleFile);
     _pendingFiles = null;
@@ -714,6 +654,18 @@ function pwCancel() {
 
 /* ── ล้างข้อมูล — ต้องใช้ password ── */
 function pwClearData() {
+  if (typeof isAdmin !== 'function' || !isAdmin()) {
+    alert('เฉพาะผู้ดูแลระบบเท่านั้นที่ล้างข้อมูลได้');
+    return;
+  }
+  if (!confirm('ยืนยันล้างข้อมูลในเบราว์เซอร์เครื่องนี้?')) return;
+  localStorage.removeItem('kppl_data');
+  localStorage.removeItem('kppl_meta');
+  allData = BUILTIN_DATA;
+  updateAll();
+  dbRenderStatus(null, 'cleared');
+  return;
+  /* Legacy modal retained below for layout compatibility; unreachable. */
   const existing = document.getElementById('pwModal');
   if (existing) existing.remove();
   const modal = document.createElement('div');
@@ -745,18 +697,7 @@ function pwClearData() {
 }
 
 function pwConfirmClear() {
-  const val = document.getElementById('pwInput').value;
-  if (val !== IMPORT_PASSWORD) {
-    const err = document.getElementById('pwError');
-    err.style.display = 'block';
-    document.getElementById('pwInput').value = '';
-    document.getElementById('pwInput').focus();
-    const box = document.querySelector('#pwModal .modal-box');
-    box.style.transform = 'translateX(-8px)';
-    setTimeout(()=>{ box.style.transform='translateX(8px)'; }, 80);
-    setTimeout(()=>{ box.style.transform='translateX(0)'; }, 160);
-    return;
-  }
+  if (typeof isAdmin !== 'function' || !isAdmin()) return;
   document.getElementById('pwModal').remove();
   localStorage.removeItem('kppl_data');
   localStorage.removeItem('kppl_meta');
@@ -928,4 +869,3 @@ ${newRows.map(r=>`-- ${r[0]}`).join('\n')}
       : `✅ Export ทั้งหมด <strong>${newRows.length}</strong> รายการ`;
   }
 }
-

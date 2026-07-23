@@ -235,11 +235,11 @@ function renderTable() {
 
     return `<tr>
       <td><span class="seq-num">${num}</span></td>
-      <td><span class="job-id">${d[0]||'—'}</span></td>
-      <td><span class="date-cell" style="font-family:var(--mono);font-size:11px">${closeDate}</span></td>
-      <td><span class="ct-badge" style="background:${ctag.bg};color:${ctag.color}">${d[2]||'—'}</span></td>
-      <td><span class="budget-cell" style="font-family:var(--mono);font-weight:600;color:var(--text)">${budget}</span></td>
-      <td><span class="note-cell" style="font-size:12px;color:var(--text2)">${d[3]||'—'}</span></td>
+      <td><span class="job-id">${escapeHTML(d[0]||'—')}</span></td>
+      <td><span class="date-cell" style="font-family:var(--mono);font-size:11px">${escapeHTML(closeDate)}</span></td>
+      <td><span class="ct-badge" style="background:${ctag.bg};color:${ctag.color}">${escapeHTML(d[2]||'—')}</span></td>
+      <td><span class="budget-cell" style="font-family:var(--mono);font-weight:600;color:var(--text)">${escapeHTML(budget)}</span></td>
+      <td><span class="note-cell" style="font-size:12px;color:var(--text2)">${escapeHTML(d[3]||'—')}</span></td>
     </tr>`;
   }).join('');
 
@@ -387,11 +387,11 @@ function exportTablePDF() {
     }
     return `<tr>
       <td style="text-align:center;color:#64748b">${i+1}</td>
-      <td style="font-family:monospace;font-size:11px;color:#00c8ff">${r[0]||'—'}</td>
-      <td style="font-family:monospace;font-size:11px">${r[1] ? r[1].slice(0,19) : '—'}</td>
-      <td>${r[2]||'—'}</td>
+      <td style="font-family:monospace;font-size:11px;color:#00c8ff">${escapeHTML(r[0]||'—')}</td>
+      <td style="font-family:monospace;font-size:11px">${escapeHTML(r[1] ? r[1].slice(0,19) : '—')}</td>
+      <td>${escapeHTML(r[2]||'—')}</td>
       <td style="font-family:monospace;font-size:11px;text-align:right">${budget}</td>
-      <td style="color:#475569">${r[3]||'—'}</td>
+      <td style="color:#475569">${escapeHTML(r[3]||'—')}</td>
     </tr>`;
   }).join('');
 
@@ -452,7 +452,7 @@ function exportTablePDF() {
 
 // ════════════════════════════════════════════════════════════════
 //  CUSTOM TICKER MESSAGES — เพิ่มข้อความแจ้งเตือนพิเศษ
-//  ต้องใช้ password 121212 ก่อนแก้ไข
+//  ต้องเป็นผู้ดูแลระบบที่ยืนยันโดย server ก่อนแก้ไข
 // ════════════════════════════════════════════════════════════════
 
 const CMSG_KEY = 'kppl_custom_msgs';
@@ -467,9 +467,11 @@ function cmsgSave(msgs) {
 
 /* ── Modal แก้ไขข้อความ (เปิดหลังจาก verify password แล้ว) ── */
 function tickerMsgModal() {
-  // ต้อง verify password ก่อน
-  _tickerMsgAction = 'openEditor';
-  showPwForTickerMsg();
+  if (typeof isAdmin !== 'function' || !isAdmin()) {
+    alert('เฉพาะผู้ดูแลระบบเท่านั้นที่แก้ไขข้อความได้');
+    return;
+  }
+  openTickerEditor();
 }
 
 let _tickerMsgAction = null;
@@ -502,18 +504,7 @@ function showPwForTickerMsg() {
 }
 
 function pwTickerConfirm() {
-  const val = document.getElementById('pwInput').value;
-  if (val !== IMPORT_PASSWORD) {
-    const err = document.getElementById('pwError');
-    err.style.display = 'block';
-    document.getElementById('pwInput').value = '';
-    document.getElementById('pwInput').focus();
-    const box = document.querySelector('#pwModal .modal-box');
-    box.style.transform='translateX(-8px)';
-    setTimeout(()=>{ box.style.transform='translateX(8px)'; },80);
-    setTimeout(()=>{ box.style.transform='translateX(0)'; },160);
-    return;
-  }
+  if (typeof isAdmin !== 'function' || !isAdmin()) return;
   document.getElementById('pwModal').remove();
   openTickerEditor();
 }
@@ -626,4 +617,3 @@ function cmsgDelete(i) {
   }
   if (allData.length) renderLeaderboard(allData);
 }
-

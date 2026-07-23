@@ -30,8 +30,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
 </head>
 
 <body>
@@ -329,19 +327,19 @@
     </div>
 
     <div class="login-form">
-      <div class="login-field" id="loginFieldUser">
+      <div class="login-field" id="legacyLoginFieldUser">
         <label>ชื่อผู้ใช้ (Username)</label>
         <div class="login-input-wrap">
           <span class="login-input-ico">👤</span>
-          <input type="text" id="loginUser" placeholder="กรอก Username"
+          <input type="text" id="legacyLoginUser" placeholder="กรอก Username"
                  autocomplete="username" spellcheck="false">
         </div>
       </div>
-      <div class="login-field" id="loginFieldPass">
+      <div class="login-field" id="legacyLoginFieldPass">
         <label>รหัสผ่าน (Password)</label>
         <div class="login-input-wrap">
           <span class="login-input-ico">🔒</span>
-          <input type="password" id="loginPass" placeholder="กรอก Password"
+          <input type="password" id="legacyLoginPass" placeholder="กรอก Password"
                  autocomplete="current-password">
           <button class="login-eye" onclick="toggleLoginPass(this)" type="button">👁</button>
         </div>
@@ -350,17 +348,17 @@
       <!-- Remember Me -->
       <div class="login-remember">
         <label class="remember-label">
-          <input type="checkbox" id="loginRemember" class="remember-checkbox">
+          <input type="checkbox" id="legacyLoginRemember" class="remember-checkbox">
           <span class="remember-custom"></span>
           <span class="remember-text">จดจำชื่อผู้ใช้และรหัสผ่าน</span>
         </label>
       </div>
 
-      <div id="loginError" class="login-error" style="display:none">
-        <span>⚠️</span><span id="loginErrorMsg">ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง</span>
+      <div id="legacyLoginError" class="login-error" style="display:none">
+        <span>⚠️</span><span id="legacyLoginErrorMsg">ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง</span>
       </div>
 
-      <button class="login-btn" id="loginBtn" onclick="doLogin()">
+      <button class="login-btn" id="legacyLoginBtn" onclick="doLogin()">
         <span class="login-btn-text">เข้าสู่ระบบ</span>
         <span class="login-btn-arrow">→</span>
       </button>
@@ -860,7 +858,6 @@
 </div>
 </body>
 
-  <script src="js/supabase.js?v=5.2"></script>
   <script src="js/login.js?v=5.2"></script>
   <script src="js/admin.js?v=5.2"></script>
   <script src="js/config.js?v=5.2"></script>

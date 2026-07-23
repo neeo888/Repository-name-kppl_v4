@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/config.php';
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') jsonOut(['error' => 'POST only'], 405);
 
 $raw = file_get_contents('php://input');
 $data = json_decode($raw, true);
@@ -16,6 +17,9 @@ $password = $data['password'] ?? '';
 
 if (!$firstName || !$lastName || !$employeeId || !$branch || !$password) {
     jsonOut(['error' => 'กรุณากรอกข้อมูลให้ครบถ้วน'], 400);
+}
+if (!preg_match('/^[A-Za-z0-9_-]{2,50}$/', $employeeId)) {
+    jsonOut(['error' => 'รูปแบบรหัสพนักงานไม่ถูกต้อง'], 400);
 }
 
 if (strlen($password) < 6) {
@@ -36,10 +40,10 @@ try {
     $hash = password_hash($password, PASSWORD_DEFAULT);
     
     // Insert new user
-    $stmt = $db->prepare("INSERT INTO `users` (`first_name`, `last_name`, `employee_id`, `branch`, `password_hash`, `role`, `approved`) VALUES (?, ?, ?, ?, ?, 'user', 1)");
+    $stmt = $db->prepare("INSERT INTO `users` (`first_name`, `last_name`, `employee_id`, `branch`, `password_hash`, `role`, `approved`) VALUES (?, ?, ?, ?, ?, 'user', 0)");
     $stmt->execute([$firstName, $lastName, $employeeId, $branch, $hash]);
     
-    jsonOut(['success' => true, 'message' => 'ลงทะเบียนสำเร็จ']);
+    jsonOut(['success' => true, 'message' => 'ลงทะเบียนสำเร็จ กรุณารอผู้ดูแลอนุมัติ']);
 } catch (Throwable $e) {
-    jsonOut(['error' => 'DB Error: ' . $e->getMessage()], 500);
+    safeError($e, 'register');
 }

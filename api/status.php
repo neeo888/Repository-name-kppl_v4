@@ -3,6 +3,7 @@
  * GET /api/status.php — ตรวจสอบสถานะ DB
  */
 require_once __DIR__ . '/config.php';
+requireAdmin();
 try {
     $db    = getDB();
     $count = (int)$db->query("SELECT COUNT(*) FROM `pipe_repair_docs`")->fetchColumn();
@@ -12,5 +13,5 @@ try {
     ")->fetchAll();
     jsonOut(['ok'=>true,'total_rows'=>$count,'recent_imports'=>$logs]);
 } catch (PDOException $e) {
-    jsonOut(['ok'=>false,'error'=>$e->getMessage()],500);
+    safeError($e, 'status');
 }

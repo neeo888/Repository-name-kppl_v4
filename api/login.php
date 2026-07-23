@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/config.php';
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') jsonOut(['error' => 'POST only'], 405);
 
 $raw = file_get_contents('php://input');
 $data = json_decode($raw, true);
@@ -34,18 +35,15 @@ try {
     if (!password_verify($password, $user['password_hash'])) {
         jsonOut(['error' => 'รหัสผ่านไม่ถูกต้อง'], 400);
     }
-    
-    // Return session data
+
+    startSecureSession();
+    session_regenerate_id(true);
+    $_SESSION['user'] = publicUser($user);
+
     jsonOut([
         'success' => true,
-        'user' => [
-            'first_name' => $user['first_name'],
-            'last_name' => $user['last_name'],
-            'employee_id' => $user['employee_id'],
-            'branch' => $user['branch'],
-            'role' => $user['role'],
-        ]
+        'user' => $_SESSION['user'],
     ]);
 } catch (Throwable $e) {
-    jsonOut(['error' => 'DB Error: ' . $e->getMessage()], 500);
+    safeError($e, 'login');
 }

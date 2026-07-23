@@ -198,4 +198,26 @@ Chart.register(glowPlugin);
 // ════════════════════════════════════════════════════════════════
 //  TEAM COLOR PALETTE
 // ════════════════════════════════════════════════════════════════
+// Escape all untrusted values before inserting them into an HTML template.
+window.escapeHTML = function (value) {
+  return String(value ?? '').replace(/[&<>'"]/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+  })[ch]);
+};
 
+window.sanitizeHTML = function (html) {
+  const template = document.createElement('template');
+  template.innerHTML = String(html ?? '');
+  const allowed = new Set(['STRONG', 'SPAN', 'BR', 'UL', 'LI']);
+  [...template.content.querySelectorAll('*')].forEach(node => {
+    if (!allowed.has(node.tagName)) {
+      node.replaceWith(document.createTextNode(node.textContent || ''));
+      return;
+    }
+    [...node.attributes].forEach(attr => {
+      const allowedClass = attr.name === 'class' && /^hi-[garc]$/.test(attr.value);
+      if (!allowedClass) node.removeAttribute(attr.name);
+    });
+  });
+  return template.innerHTML;
+};

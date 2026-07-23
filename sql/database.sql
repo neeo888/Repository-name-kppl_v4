@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS `pipe_repair_docs` (
   `job_date`    DATETIME      DEFAULT NULL COMMENT 'วันที่ปิดงาน',
   `contractor`  VARCHAR(120)  NOT NULL DEFAULT '' COMMENT 'ผู้รับจ้าง',
   `note`        VARCHAR(255)  NOT NULL DEFAULT '' COMMENT 'หมายเหตุ',
+  `budget`      VARCHAR(100)  NOT NULL DEFAULT '' COMMENT 'งบประมาณ',
   `imported_at` DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `source_file` VARCHAR(255)  NOT NULL DEFAULT '',
   PRIMARY KEY (`id`),

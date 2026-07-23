@@ -4,13 +4,12 @@
    ═══════════════════════════════════════════════════════════════ */
 
 (function () {
-  const SESSION_KEY   = 'kppl_session';
   const REMEMBER_KEY  = 'kppl_remember';
 
   // ── Remember Me helpers ──────────────────────────────────────
-  function saveRemember(u, p) {
+  function saveRemember(u) {
     try {
-      localStorage.setItem(REMEMBER_KEY, JSON.stringify({ user: u, pass: p }));
+      localStorage.setItem(REMEMBER_KEY, JSON.stringify({ user: u }));
     } catch {}
   }
   function loadRemember() {
@@ -23,30 +22,15 @@
     localStorage.removeItem(REMEMBER_KEY);
   }
 
-  // ── Check existing session ────────────────────────────────────
-  function isLoggedIn() {
-    try {
-      const s = localStorage.getItem(SESSION_KEY);
-      if (!s) return false;
-      const obj = JSON.parse(s);
-      return obj && obj.ok === true;
-    } catch { return false; }
+  function setCurrentUser(user) {
+    window.kpplCurrentUser = user ? {
+      user: user.employee_id,
+      role: user.role || 'user',
+      branch: user.branch || '',
+      name: `${user.first_name || ''} ${user.last_name || ''}`.trim()
+    } : null;
   }
-
-  function saveSession(u, role, branch, name) {
-    localStorage.setItem(SESSION_KEY, JSON.stringify({
-      ok:     true,
-      at:     Date.now(),
-      user:   u,
-      role:   role || 'user',
-      branch: branch || '',
-      name:   name || ''
-    }));
-  }
-
-  function clearSession() {
-    localStorage.removeItem(SESSION_KEY);
-  }
+  window.getCurrentUser = () => window.kpplCurrentUser || null;
 
   // ── Show/Hide UI ──────────────────────────────────────────────
   function showApp() {
@@ -155,10 +139,7 @@
       if (btnText) btnText.textContent = 'กำลังลงทะเบียน...';
     }
     
-    // Call Register API (Supabase)
-    const regPromise = (typeof supabaseRegister === 'function')
-      ? supabaseRegister(first, last, empId, branch, pass)
-      : fetch('api/register.php', {
+    const regPromise = fetch('api/register.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -180,7 +161,7 @@
       }
       
       if (res.success) {
-        alert('🎉 ลงทะเบียนสำเร็จเรียบร้อยแล้ว!\nระบบเปิดใช้งานและอนุมัติสิทธิ์ให้ท่านเรียบร้อย สามารถเข้าสู่ระบบได้ทันที');
+        alert('🎉 ลงทะเบียนสำเร็จแล้ว\nกรุณารอผู้ดูแลระบบอนุมัติก่อนเข้าสู่ระบบ');
         
         // Reset form
         regFirst.value = '';
@@ -257,10 +238,7 @@
       if (btnText) btnText.textContent = 'กำลังตรวจสอบ...';
     }
 
-    // Fetch login API (Supabase)
-    const loginPromise = (typeof supabaseLogin === 'function')
-      ? supabaseLogin(u, p)
-      : fetch('api/login.php', {
+    const loginPromise = fetch('api/login.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ employee_id: u, password: p })
@@ -277,13 +255,13 @@
         // Handle Remember Me
         const rememberCb = document.getElementById('loginRemember');
         if (rememberCb && rememberCb.checked) {
-          saveRemember(u, p);
+          saveRemember(u);
         } else {
           clearRemember();
         }
 
         const user = res.user;
-        saveSession(user.employee_id, user.role, user.branch, `${user.first_name} ${user.last_name}`);
+        setCurrentUser(user);
         showApp();
         
         // apply permissions after login
@@ -328,8 +306,9 @@
   };
 
   // ── Logout action ─────────────────────────────────────────────
-  window.doLogout = function () {
-    clearSession();
+  window.doLogout = async function () {
+    try { await fetch('api/session.php', { method: 'POST' }); } catch {}
+    setCurrentUser(null);
     // reset fields
     const u = document.getElementById('loginUser');
     const p = document.getElementById('loginPass');
@@ -367,23 +346,25 @@
   });
 
   // ── Boot: check session + fill remembered credentials ─────────
-  document.addEventListener('DOMContentLoaded', function () {
-    if (isLoggedIn()) {
+  document.addEventListener('DOMContentLoaded', async function () {
+    try {
+      const response = await fetch('api/session.php', { cache: 'no-store' });
+      const session = await response.json();
+      if (!response.ok || !session.authenticated) throw new Error('No active session');
+      setCurrentUser(session.user);
       showApp();
       setTimeout(() => {
         if (typeof applyPermissions === 'function') applyPermissions();
         if (typeof _adminInit === 'function') _adminInit();
       }, 500);
-    } else {
+    } catch {
+      setCurrentUser(null);
       showLogin();
-      // Fill remembered credentials
       const mem = loadRemember();
       if (mem) {
         const uEl = document.getElementById('loginUser');
-        const pEl = document.getElementById('loginPass');
         const cb  = document.getElementById('loginRemember');
         if (uEl) uEl.value = mem.user || '';
-        if (pEl) pEl.value = mem.pass || '';
         if (cb)  cb.checked = true;
       }
     }

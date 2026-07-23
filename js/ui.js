@@ -244,7 +244,7 @@ function buildTicker(data, fast, slow) {
       const diff = Math.round((now-d)/86400000);
       const ds   = `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()+543}`;
       const when = diff===0?'วันนี้':diff+' วันที่แล้ว';
-      items.push(`<span class="t-item t-item-alert">📌 <strong>${r[0]}</strong> — ${shortName(r[2])} — ปิด ${ds} (${when}) ⚠️ รีบจัดเอกสารด่วน!</span><span class="t-sep">◆</span>`);
+      items.push(`<span class="t-item t-item-alert">📌 <strong>${escapeHTML(r[0])}</strong> — ${escapeHTML(shortName(r[2]))} — ปิด ${escapeHTML(ds)} (${escapeHTML(when)}) ⚠️ รีบจัดเอกสารด่วน!</span><span class="t-sep">◆</span>`);
     });
   }
 

@@ -19,15 +19,10 @@ ini_set('memory_limit', '256M');
 
 // ── ตรวจสอบ Authorization ────────────────────────────────────
 $isCron = (php_sapi_name() === 'cli');
-$token  = $_GET['token'] ?? ($_POST['token'] ?? '');
 $mode   = $_GET['mode']  ?? ($_POST['mode']  ?? 'delta');
 
 if (!$isCron) {
-    if ($token !== CRON_SECRET) {
-        jsonOut(['ok' => false, 'error' => 'Unauthorized — token required'], 403);
-    }
-    header('Content-Type: application/json; charset=utf-8');
-    header('Access-Control-Allow-Origin: ' . ALLOWED_ORIGIN);
+    requireAdmin();
 }
 
 // ── Init sync log table ──────────────────────────────────────

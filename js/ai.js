@@ -131,11 +131,11 @@ async function runAIAnalysis(stats) {
       }
       if (resp.status === 429) {
         if (aiBody) aiBody.innerHTML = `<div class="ai-text"><span class="hi-a">⏳ Rate Limit — รอสักครู่แล้วลองใหม่</span><br>
-          <span style="font-size:10px;color:var(--text3)">${errMsg}</span></div>
+          <span style="font-size:10px;color:var(--text3)">${escapeHTML(errMsg)}</span></div>
           <button class="ai-btn" onclick="triggerAI()">🔄 ลองใหม่</button>`;
         _aiRunning = false; return;
       }
-      if (aiBody) aiBody.innerHTML = `<div class="ai-text"><span class="hi-r">❌ ${errMsg}</span></div>
+      if (aiBody) aiBody.innerHTML = `<div class="ai-text"><span class="hi-r">❌ ${escapeHTML(errMsg)}</span></div>
         <button class="ai-btn" onclick="triggerAI()">🔄 ลองใหม่</button>`;
       _aiRunning = false; return;
     }
@@ -145,7 +145,7 @@ async function runAIAnalysis(stats) {
       const now = new Date();
       const ts  = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
       aiBody.innerHTML = `
-        <div class="ai-text">${txt}</div>
+        <div class="ai-text">${sanitizeHTML(txt)}</div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;flex-wrap:wrap;gap:6px">
           <span style="font-size:9px;color:var(--text3)">วิเคราะห์เมื่อ ${ts} น. · claude-sonnet-4</span>
           <button class="ai-btn" style="margin:0" onclick="triggerAI()">🔄 วิเคราะห์ใหม่</button>
@@ -156,7 +156,7 @@ async function runAIAnalysis(stats) {
     const isTimeout = e.name === 'AbortError';
     if (aiBody) aiBody.innerHTML = `<div class="ai-text">
       <span class="hi-r">${isTimeout ? '⏱️ หมดเวลา 30 วินาที' : '⚠️ เชื่อมต่อไม่ได้'}</span><br>
-      <span style="font-size:10px;color:var(--text3)">${isTimeout ? 'ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่' : e.message}</span></div>
+      <span style="font-size:10px;color:var(--text3)">${escapeHTML(isTimeout ? 'ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่' : e.message)}</span></div>
       <button class="ai-btn" onclick="triggerAI()">🔄 ลองใหม่</button>`;
   }
   _aiRunning = false;
@@ -165,4 +165,3 @@ function triggerAI() {
   _aiRunning = false;
   updateFYDashboard(allData || []);
 }
-

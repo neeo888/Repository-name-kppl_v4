@@ -1,13 +1,12 @@
 /* ═══════════════════════════════════════════════════════════════
    กปภ.พิษณุโลก — js/admin.js
-   Admin Panel — เฉพาะผู้ดูแลระบบ (9235 / A19070719a)
+   Admin Panel — protected by the server-verified admin role
    ═══════════════════════════════════════════════════════════════ */
 
 (function () {
   'use strict';
 
   // ── ผู้ที่มีสิทธิ์ admin ──────────────────────────────────────
-  const ADMIN_USER  = '9235';
   const USER_STORE  = 'kppl_users';   // localStorage key สำหรับรายชื่อสมาชิก
 
   // ── User Store helpers ────────────────────────────────────────
@@ -25,10 +24,7 @@
     if (typeof _syncLoginUsers === 'function') _syncLoginUsers(users);
   }
   function _defaultUsers() {
-    return [
-      { user:'9235',  pass:'A19070719a', role:'admin',  name:'ผู้ดูแลระบบ', approved:true,  createdAt: new Date().toISOString() },
-      { user:'admin', pass:'admin',      role:'user',   name:'ผู้ใช้ทั่วไป', approved:true,  createdAt: new Date().toISOString() },
-    ];
+    return [];
   }
   function _initUserStore() {
     // ถ้ายังไม่เคย init → ใช้ค่า default
@@ -76,12 +72,8 @@
 
   // ── ตรวจว่าเป็น admin ────────────────────────────────────────
   window.isAdmin = function () {
-    try {
-      const s = localStorage.getItem('kppl_session');
-      if (!s) return false;
-      const obj = JSON.parse(s);
-      return obj && obj.ok && (obj.user === ADMIN_USER || obj.role === 'admin');
-    } catch { return false; }
+    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+    return !!user && user.role === 'admin';
   };
 
   // ── เปิด Panel ───────────────────────────────────────────────
@@ -324,10 +316,10 @@
         </label>
       </div>
 
-      <div class="admin-section-title" style="margin-top:20px">เปลี่ยนรหัส Import (121212)</div>
+      <div class="admin-section-title" style="margin-top:20px">สิทธิ์นำเข้าข้อมูล</div>
       <div class="admin-pw-form">
         <div class="admin-pw-title">🔒 รหัสผ่านสำหรับนำเข้าข้อมูล</div>
-        <div class="admin-info-box">รหัสผ่านนี้ใช้สำหรับการนำเข้าไฟล์และล้างข้อมูล (ค่าเริ่มต้น: 121212)</div>
+        <div class="admin-info-box">การนำเข้าและล้างข้อมูลตรวจสิทธิ์ Admin ผ่าน session ฝั่ง server</div>
         <div class="admin-input-group">
           <label>รหัสผ่านปัจจุบัน</label>
           <input type="password" class="admin-input" id="adminPwOld" placeholder="••••••">
@@ -593,12 +585,10 @@
     const si = document.getElementById('adminSessionInfo');
     if (si) {
       try {
-        const s = JSON.parse(localStorage.getItem('kppl_session') || '{}');
-        const at = s.at ? new Date(s.at).toLocaleString('th-TH') : '—';
+        const s = typeof getCurrentUser === 'function' ? (getCurrentUser() || {}) : {};
         si.innerHTML = `
-          <div class="admin-log-item"><span class="admin-log-time">User</span><span class="admin-log-msg ok">${s.user||'—'}</span></div>
-          <div class="admin-log-item"><span class="admin-log-time">Login</span><span class="admin-log-msg info">${at}</span></div>
-          <div class="admin-log-item"><span class="admin-log-time">Role</span><span class="admin-log-msg warn">${s.user === ADMIN_USER ? 'ผู้ดูแลระบบ' : 'ผู้ใช้ทั่วไป'}</span></div>`;
+          <div class="admin-log-item"><span class="admin-log-time">User</span><span class="admin-log-msg ok">${escapeHTML(s.user||'—')}</span></div>
+          <div class="admin-log-item"><span class="admin-log-time">Role</span><span class="admin-log-msg warn">${escapeHTML(s.role||'—')}</span></div>`;
       } catch { si.textContent = '—'; }
     }
   }
@@ -720,12 +710,9 @@
 
     try {
       const API = (typeof API_BASE !== 'undefined') ? API_BASE : './api';
-      const PW  = (typeof IMPORT_PASSWORD_JS !== 'undefined') ? IMPORT_PASSWORD_JS : '121212';
-      const data = (typeof supabaseSaveRows === 'function')
-        ? await supabaseSaveRows(rows, 'admin_sync')
-        : await (await fetch(`${API}/save_rows.php`, {
+      const data = await (await fetch(`${API}/save_rows.php`, {
             method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ password: PW, fileName: 'admin_sync', rows }),
+            body: JSON.stringify({ fileName: 'admin_sync', rows }),
           })).json();
       if (data.ok) {
         adminToast(`Sync สำเร็จ — เพิ่ม ${data.added} รายการ ซ้ำ ${data.dup}`, 'ok');
@@ -760,22 +747,7 @@
   };
 
   window.adminChangePW = function () {
-    const oldPW  = (document.getElementById('adminPwOld')?.value  || '').trim();
-    const newPW  = (document.getElementById('adminPwNew')?.value  || '').trim();
-    const newPW2 = (document.getElementById('adminPwNew2')?.value || '').trim();
-
-    const current = (typeof IMPORT_PASSWORD !== 'undefined') ? IMPORT_PASSWORD : '121212';
-    if (oldPW !== current) { adminToast('รหัสผ่านปัจจุบันไม่ถูกต้อง', 'err'); return; }
-    if (!newPW)             { adminToast('กรุณากรอกรหัสผ่านใหม่', 'warn'); return; }
-    if (newPW !== newPW2)   { adminToast('รหัสผ่านใหม่ไม่ตรงกัน', 'err'); return; }
-
-    // บันทึกไว้ใน localStorage (ระบบจะดึงไปใช้ต่อ)
-    localStorage.setItem('kppl_pw_cache', newPW);
-    _addLog(`เปลี่ยนรหัสผ่าน import สำเร็จ`, 'ok');
-    adminToast('เปลี่ยนรหัสผ่านสำเร็จ (จะมีผลในครั้งต่อไป)', 'ok');
-    ['adminPwOld','adminPwNew','adminPwNew2'].forEach(id => {
-      const el = document.getElementById(id); if (el) el.value = '';
-    });
+    adminToast('ระบบใช้สิทธิ์ Admin จาก server แล้ว ไม่มีรหัส Import แยก', 'info');
   };
 
   window.adminSaveTicker = function () {
@@ -862,9 +834,7 @@ window.adminRenderUsers = async function () {
   el.innerHTML = '<div class="admin-info-box">กำลังโหลดรายชื่อสมาชิก...</div>';
 
   try {
-    const data = (typeof supabaseListUsers === 'function')
-      ? await supabaseListUsers()
-      : await (await fetch('api/users.php')).json();
+    const data = await (await fetch('api/users.php', { cache: 'no-store' })).json();
     if (!data.success) {
       el.innerHTML = `<div class="admin-info-box">${data.error || 'โหลดข้อมูลล้มเหลว'}</div>`;
       return;
@@ -915,6 +885,9 @@ window.adminRenderUsers = async function () {
               background:rgba(80,100,255,0.18);border:1px solid rgba(80,100,255,0.35);color:#99aaff"
               onclick="adminShowPermEditor('${u.user}')">🔐 สิทธิ์</button>
             <button class="admin-btn" style="padding:5px 10px;font-size:0.72rem;
+              background:rgba(255,180,0,0.12);border:1px solid rgba(255,180,0,0.3);color:#ffcc66"
+              onclick="adminResetUserPassword('${u.user}')">🔑 รีเซ็ตรหัส</button>
+            <button class="admin-btn" style="padding:5px 10px;font-size:0.72rem;
               background:rgba(255,60,60,0.12);border:1px solid rgba(255,60,60,0.3);color:#ff7070"
               onclick="adminDeleteUser('${u.user}')">🗑️</button>
           </div>`;
@@ -926,13 +899,13 @@ window.adminRenderUsers = async function () {
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
             <div style="flex:1;min-width:0">
               <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
-                <span style="font-size:0.92rem;font-weight:700;color:#fff">${u.name || u.user}</span>
+                <span style="font-size:0.92rem;font-weight:700;color:#fff">${escapeHTML(u.name || u.user)}</span>
                 ${roleTag}
                 ${approvedTag}
               </div>
               <div style="display:flex;gap:16px;font-size:0.72rem;color:rgba(255,255,255,0.35);flex-wrap:wrap">
-                <span>👤 Username: <span style="color:rgba(255,255,255,0.6);font-family:'JetBrains Mono',monospace">${u.user}</span></span>
-                ${u.branch ? `<span>📍 สังกัด: <span style="color:rgba(255,255,255,0.6)">${u.branch}</span></span>` : ''}
+                <span>👤 Username: <span style="color:rgba(255,255,255,0.6);font-family:'JetBrains Mono',monospace">${escapeHTML(u.user)}</span></span>
+                ${u.branch ? `<span>📍 สังกัด: <span style="color:rgba(255,255,255,0.6)">${escapeHTML(u.branch)}</span></span>` : ''}
                 ${u.createdAt ? `<span>📅 ${new Date(u.createdAt).toLocaleDateString('th-TH')}</span>` : ''}
               </div>
             </div>
@@ -961,7 +934,7 @@ window.adminRenderUsers = async function () {
       </div>
       ${rows}`;
   } catch (err) {
-    el.innerHTML = `<div class="admin-info-box">เกิดข้อผิดพลาดในการโหลดสมาชิก: ${err.message}</div>`;
+    el.innerHTML = `<div class="admin-info-box">เกิดข้อผิดพลาดในการโหลดสมาชิก: ${escapeHTML(err.message)}</div>`;
   }
 };
 
@@ -986,35 +959,23 @@ window.adminAddUser = function () {
   if (!uname) { adminToast('กรุณากรอก Username', 'warn'); return; }
   if (!pass)  { adminToast('กรุณากรอก Password', 'warn'); return; }
 
-  const regPromise = (typeof supabaseRegister === 'function')
-    ? supabaseRegister(name || uname, '', uname, 'กปภ.สาขาพิษณุโลก', pass)
-    : fetch('api/register.php', {
+  const regPromise = fetch('api/users.php?action=create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           first_name: name || uname,
-          last_name: '',
+          last_name: '-',
           employee_id: uname,
           branch: 'กปภ.สาขาพิษณุโลก',
-          password: pass
+          password: pass,
+          role: role
         })
       }).then(r => r.json());
 
   regPromise
   .then(res => {
     if (res.success) {
-      if (role !== 'user') {
-        const rolePromise = (typeof supabaseChangeUserRole === 'function')
-          ? supabaseChangeUserRole(uname, role)
-          : fetch('api/users.php?action=change_role', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ employee_id: uname, role: role })
-            });
-        rolePromise.then(() => adminRenderUsers());
-      } else {
-        adminRenderUsers();
-      }
+      adminRenderUsers();
       adminHideAddUser();
       _addLog(`เพิ่มสมาชิก ${uname} (${role})`, 'ok');
       adminToast(`เพิ่มสมาชิก "${uname}" สำเร็จ`, 'ok');
@@ -1089,6 +1050,33 @@ window.adminChangeRole = function (uname, newRole) {
       adminToast(res.error || 'เปลี่ยน Role ล้มเหลว', 'err');
     }
   });
+};
+
+window.adminResetUserPassword = function (uname) {
+  const password = prompt(`กำหนดรหัสผ่านใหม่สำหรับ "${uname}"\nอย่างน้อย 12 ตัวอักษร`);
+  if (password === null) return;
+  if (password.length < 12) {
+    adminToast('รหัสผ่านต้องมีอย่างน้อย 12 ตัวอักษร', 'warn');
+    return;
+  }
+  const confirmation = prompt('กรอกรหัสผ่านใหม่ซ้ำอีกครั้ง');
+  if (confirmation !== password) {
+    adminToast('รหัสผ่านทั้งสองครั้งไม่ตรงกัน', 'err');
+    return;
+  }
+
+  fetch('api/users.php?action=reset_password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ employee_id: uname, password })
+  })
+  .then(async response => {
+    const data = await response.json();
+    if (!response.ok || !data.success) throw new Error(data.error || 'รีเซ็ตรหัสผ่านไม่สำเร็จ');
+    _addLog(`รีเซ็ตรหัสผ่าน ${uname}`, 'warn');
+    adminToast(`รีเซ็ตรหัสผ่าน "${uname}" แล้ว`, 'ok');
+  })
+  .catch(error => adminToast(error.message || 'รีเซ็ตรหัสผ่านไม่สำเร็จ', 'err'));
 };
 
 window.adminDeleteUser = function (uname) {
@@ -1166,7 +1154,7 @@ function _userPerms(uname) {
 /** apply permissions — ซ่อน/แสดง elements พร้อม smooth transition */
 window.applyPermissions = function () {
   try {
-    const sess = JSON.parse(localStorage.getItem('kppl_session') || '{}');
+    const sess = typeof getCurrentUser === 'function' ? (getCurrentUser() || {}) : {};
     const uname = sess.user;
     if (!uname) return;
 
@@ -1431,7 +1419,7 @@ window.permSave = function (uname) {
 
   // ถ้า user คนนั้น login อยู่ → apply ทันที
   try {
-    const sess = JSON.parse(localStorage.getItem('kppl_session') || '{}');
+    const sess = typeof getCurrentUser === 'function' ? (getCurrentUser() || {}) : {};
     if (sess.user === uname) applyPermissions();
   } catch {}
 };
@@ -1459,7 +1447,7 @@ window.adminLoadSyncStatus = async function () {
     // ดึง secret จาก PHP — ใช้ status.php แทนเพราะ token ไม่ expose ใน JS
     const data = (typeof supabaseGetSyncStatus === 'function')
       ? await supabaseGetSyncStatus()
-      : await (await fetch(`${API}/sync_status.php?token=kppl_cron_secret_2025_plk&limit=5`, { cache:'no-store' })).json();
+      : await (await fetch(`${API}/sync_status.php?limit=5`, { cache:'no-store' })).json();
 
     if (!data.ok) throw new Error(data.error || 'Sync failed');
 
@@ -1524,7 +1512,7 @@ window.adminRunSync = async function (mode) {
     const data = (typeof supabaseTriggerAutoFetch === 'function')
       ? await supabaseTriggerAutoFetch(mode)
       : await (await fetch(
-          `${API}/auto_fetch.php?token=kppl_cron_secret_2025_plk&mode=${mode}`,
+          `${API}/auto_fetch.php?mode=${mode}`,
           { cache: 'no-store' }
         )).json();
 
@@ -1596,7 +1584,7 @@ window.adminLoadSyncLogs = async function () {
     const API = (typeof API_BASE !== 'undefined') ? API_BASE : './api';
     const data = (typeof supabaseGetSyncStatus === 'function')
       ? await supabaseGetSyncStatus()
-      : await (await fetch(`${API}/sync_status.php?token=kppl_cron_secret_2025_plk&limit=20`, { cache:'no-store' })).json();
+      : await (await fetch(`${API}/sync_status.php?limit=20`, { cache:'no-store' })).json();
     adminRenderSyncLogs(data.logs || []);
   } catch(e) {
     el.innerHTML = `<div class="admin-log-item"><span class="admin-log-msg err">${e.message}</span></div>`;

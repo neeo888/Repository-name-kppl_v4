@@ -33,11 +33,11 @@ define('API_TIMEOUT', 30);            // วินาที
 
 // Authentication (เลือกแบบที่ใช้)
 define('API_AUTH_TYPE',  'bearer');    // none | bearer | basic | apikey
-define('API_TOKEN',      'YOUR_TOKEN_HERE');       // Bearer token
-define('API_USERNAME',   'YOUR_USERNAME');         // Basic auth
-define('API_PASSWORD_EXT', 'YOUR_PASSWORD');       // Basic auth
+define('API_TOKEN',      envValue('KPPL_API_TOKEN'));
+define('API_USERNAME',   envValue('KPPL_API_USERNAME'));
+define('API_PASSWORD_EXT', envValue('KPPL_API_PASSWORD'));
 define('API_KEY_HEADER', 'X-API-Key');             // API Key header name
-define('API_KEY_VALUE',  'YOUR_API_KEY');          // API Key value
+define('API_KEY_VALUE',  envValue('KPPL_API_KEY'));
 
 // POST body (ถ้า METHOD = POST)
 define('API_POST_BODY', json_encode([
@@ -68,8 +68,8 @@ define('API_FIELD_MAP', json_encode([
 define('ERP_DSN',    'sqlsrv:Server=erp-server;Database=ERP_DB');  // ← DSN จริง
 // define('ERP_DSN', 'oci:dbname=//oracle-server/ERPDB');           // Oracle
 // define('ERP_DSN', 'mysql:host=erp-db;dbname=erp');               // MySQL
-define('ERP_USER',   'erp_readonly');
-define('ERP_PASS',   'erp_password_here');
+define('ERP_USER',   envValue('KPPL_ERP_USER'));
+define('ERP_PASS',   envValue('KPPL_ERP_PASS'));
 
 // SQL Query สำหรับดึงงานซ่อมท่อ
 define('ERP_QUERY', "
@@ -93,8 +93,8 @@ define('ERP_QUERY', "
 // ══════════════════════════════════════════════════════════════
 define('SCRAPE_URL',       'https://internal.pwa.co.th/reports/jobs');
 define('SCRAPE_LOGIN_URL', 'https://internal.pwa.co.th/login');
-define('SCRAPE_USER',      'your_username');
-define('SCRAPE_PASS',      'your_password');
+define('SCRAPE_USER',      envValue('KPPL_SCRAPE_USER'));
+define('SCRAPE_PASS',      envValue('KPPL_SCRAPE_PASS'));
 
 // CSS/XPath selector ของ table ที่ต้องการ
 define('SCRAPE_TABLE_SELECTOR', 'table#job_list');
@@ -114,8 +114,8 @@ define('SCRAPE_COL_MAP', json_encode([
 // ══════════════════════════════════════════════════════════════
 define('SFTP_HOST',     'files.pwa.co.th');
 define('SFTP_PORT',     22);
-define('SFTP_USER',     'ftp_username');
-define('SFTP_PASS',     'ftp_password');
+define('SFTP_USER',     envValue('KPPL_SFTP_USER'));
+define('SFTP_PASS',     envValue('KPPL_SFTP_PASS'));
 define('SFTP_PATH',     '/reports/plk/jobs_latest.xlsx');  // path บน FTP
 define('SFTP_LOCAL',    __DIR__ . '/tmp/downloaded.xlsx'); // save ที่ local
 
@@ -134,7 +134,7 @@ define('FETCH_DELTA_ONLY', true);
 define('SYNC_LOG_TABLE', 'kppl_sync_log');
 
 // Token สำหรับเรียก cron จากภายนอก (เปลี่ยนให้ยากๆ)
-define('CRON_SECRET', 'kppl_cron_secret_2025_plk');
+define('CRON_SECRET', envValue('KPPL_CRON_SECRET'));
 
 // Max rows ต่อ batch (ป้องกัน timeout)
 define('FETCH_BATCH_SIZE', 500);

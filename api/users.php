@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/config.php';
+requireAdmin();
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $action = $_GET['action'] ?? '';
@@ -43,6 +44,26 @@ try {
         if (!$empId) {
             jsonOut(['error' => 'Missing employee ID'], 400);
         }
+        if (!preg_match('/^[A-Za-z0-9_-]{2,50}$/', $empId)) {
+            jsonOut(['error' => 'Invalid employee ID'], 400);
+        }
+
+        if ($action === 'create') {
+            $firstName = trim($data['first_name'] ?? '');
+            $lastName = trim($data['last_name'] ?? '-');
+            $branch = trim($data['branch'] ?? '');
+            $password = (string)($data['password'] ?? '');
+            $role = trim($data['role'] ?? 'user');
+            if ($firstName === '' || $branch === '' || strlen($password) < 8) {
+                jsonOut(['error' => 'Missing fields or password is shorter than 8 characters'], 400);
+            }
+            if (!in_array($role, ['admin', 'user', 'contractor'], true)) {
+                jsonOut(['error' => 'Invalid role value'], 400);
+            }
+            $stmt = $db->prepare("INSERT INTO `users` (`first_name`,`last_name`,`employee_id`,`branch`,`password_hash`,`role`,`approved`) VALUES (?,?,?,?,?,?,1)");
+            $stmt->execute([$firstName, $lastName, $empId, $branch, password_hash($password, PASSWORD_DEFAULT), $role]);
+            jsonOut(['success' => true, 'message' => 'User created']);
+        }
 
         if ($action === 'toggle_approve') {
             $approved = isset($data['approved']) ? (int)$data['approved'] : 1;
@@ -61,6 +82,19 @@ try {
             jsonOut(['success' => true, 'message' => 'Role updated']);
         }
 
+        if ($action === 'reset_password') {
+            $password = (string)($data['password'] ?? '');
+            if (strlen($password) < 12) {
+                jsonOut(['error' => 'Password must be at least 12 characters'], 400);
+            }
+            $stmt = $db->prepare("UPDATE `users` SET `password_hash` = ? WHERE `employee_id` = ?");
+            $stmt->execute([password_hash($password, PASSWORD_DEFAULT), $empId]);
+            if ($stmt->rowCount() !== 1) {
+                jsonOut(['error' => 'User not found'], 404);
+            }
+            jsonOut(['success' => true, 'message' => 'Password reset']);
+        }
+
         if ($action === 'delete') {
             if ($empId === '9235' || $empId === 'admin') {
                 jsonOut(['error' => 'Cannot delete default admin users'], 400);
@@ -76,5 +110,5 @@ try {
     jsonOut(['error' => 'Method not allowed'], 405);
 
 } catch (Throwable $e) {
-    jsonOut(['error' => 'DB Error: ' . $e->getMessage()], 500);
+    safeError($e, 'users');
 }

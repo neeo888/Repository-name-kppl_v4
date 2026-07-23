@@ -8,8 +8,8 @@
 
 require_once __DIR__ . '/config.php';
 
-// ── Guard: ต้องส่ง ?token=121212 ──
-if (($_GET['token'] ?? '') !== IMPORT_PASSWORD) {
+// Guarded by a one-time secret supplied through the environment.
+if (!hash_equals(envRequired('KPPL_SETUP_SECRET'), (string)($_GET['token'] ?? ''))) {
     jsonOut(['error' => 'Forbidden — ต้องส่ง ?token=รหัสผ่าน'], 403);
 }
 
@@ -59,6 +59,13 @@ try {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
 
+    // Upgrade installations created from older database.sql versions.
+    $budgetColumn = $db->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'pipe_repair_docs' AND COLUMN_NAME = 'budget'");
+    $budgetColumn->execute();
+    if ((int)$budgetColumn->fetchColumn() === 0) {
+        $db->exec("ALTER TABLE `pipe_repair_docs` ADD COLUMN `budget` VARCHAR(100) NOT NULL DEFAULT '' AFTER `note`");
+    }
+
     // ── ตารางผู้ใช้งาน ────────────────────────────────────────────
     $db->exec("
         CREATE TABLE IF NOT EXISTS `users` (
@@ -69,12 +76,13 @@ try {
             `branch`        VARCHAR(100)  NOT NULL DEFAULT '',
             `password_hash` VARCHAR(255)  NOT NULL DEFAULT '',
             `role`          VARCHAR(20)   NOT NULL DEFAULT 'user',
-            `approved`      TINYINT(1)    NOT NULL DEFAULT 1,
+            `approved`      TINYINT(1)    NOT NULL DEFAULT 0,
             `created_at`    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (`id`),
             UNIQUE KEY `uk_employee_id` (`employee_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ");
+    $db->exec("ALTER TABLE `users` ALTER COLUMN `approved` SET DEFAULT 0");
 
     jsonOut([
         'success' => true,
@@ -83,5 +91,5 @@ try {
     ]);
 
 } catch (PDOException $e) {
-    jsonOut(['error' => 'DB Error: ' . $e->getMessage()], 500);
+    safeError($e, 'init_db');
 }
