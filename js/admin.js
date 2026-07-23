@@ -1047,7 +1047,10 @@ window.adminChangeRole = function (uname, newRole) {
 };
 
 window.adminResetUserPassword = function (uname) {
-  const password = prompt(`กำหนดรหัสผ่านใหม่สำหรับ "${uname}"\nอย่างน้อย 12 ตัวอักษร`);
+  const password = prompt(
+    `กำหนดรหัสผ่านกลางใหม่สำหรับ "${uname}"\n` +
+    `รหัสนี้ใช้กับทุกโปรเจกต์ที่เชื่อมบัญชีกลางเดียวกัน\nอย่างน้อย 12 ตัวอักษร`
+  );
   if (password === null) return;
   if (password.length < 12) {
     adminToast('รหัสผ่านต้องมีอย่างน้อย 12 ตัวอักษร', 'warn');

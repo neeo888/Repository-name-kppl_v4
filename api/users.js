@@ -1,6 +1,8 @@
 const bcrypt = require('bcryptjs');
 const { requireAdmin } = require('../server/auth');
-const { createUser, deleteUser, getUser, listUsers, updateUser } = require('../server/db');
+const {
+  createMembership, createUser, deleteUser, getAccount, getUser, listUsers, updateUser,
+} = require('../server/db');
 const { body, json, method, safeError } = require('../server/http');
 
 const validId = (value) => /^[A-Za-z0-9_-]{2,50}$/.test(value);
@@ -35,16 +37,23 @@ module.exports = async function handler(req, res) {
       const role = String(data.role || 'user');
       if (password.length < 12) return json(res, 400, { error: 'รหัสผ่านต้องมีอย่างน้อย 12 ตัวอักษร' });
       if (!['admin', 'user', 'contractor'].includes(role)) return json(res, 400, { error: 'สิทธิ์ไม่ถูกต้อง' });
-      if (await getUser(employeeId)) return json(res, 409, { error: 'รหัสพนักงานนี้มีอยู่แล้ว' });
-      await createUser({
-        first_name: String(data.first_name || employeeId).trim().slice(0, 100),
-        last_name: String(data.last_name || '-').trim().slice(0, 100),
-        employee_id: employeeId,
-        branch: String(data.branch || '').trim().slice(0, 150),
-        password_hash: await bcrypt.hash(password, 12),
-        role,
-        approved: true,
-      });
+      if (await getUser(employeeId)) return json(res, 409, { error: 'รหัสพนักงานนี้เป็นสมาชิกแอปแล้ว' });
+      const account = await getAccount(employeeId);
+      if (account) {
+        const valid = await bcrypt.compare(password, account.password_hash || '');
+        if (!valid) return json(res, 401, { error: 'บัญชีนี้มีอยู่ในระบบกลาง รหัสผ่านไม่ถูกต้อง' });
+        await createMembership(account.id, role, true);
+      } else {
+        await createUser({
+          first_name: String(data.first_name || employeeId).trim().slice(0, 100),
+          last_name: String(data.last_name || '-').trim().slice(0, 100),
+          employee_id: employeeId,
+          branch: String(data.branch || '').trim().slice(0, 150),
+          password_hash: await bcrypt.hash(password, 12),
+          role,
+          approved: true,
+        });
+      }
       return json(res, 201, { success: true });
     }
 

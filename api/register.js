@@ -1,5 +1,5 @@
 const bcrypt = require('bcryptjs');
-const { createUser, getUser } = require('../server/db');
+const { createMembership, createUser, getAccount, getUser } = require('../server/db');
 const { body, json, method, safeError } = require('../server/http');
 
 module.exports = async function handler(req, res) {
@@ -25,15 +25,22 @@ module.exports = async function handler(req, res) {
       return json(res, 409, { error: 'รหัสพนักงานนี้ถูกลงทะเบียนไว้แล้ว' });
     }
 
-    await createUser({
-      first_name: firstName.slice(0, 100),
-      last_name: lastName.slice(0, 100),
-      employee_id: employeeId,
-      branch: branch.slice(0, 150),
-      password_hash: await bcrypt.hash(password, 12),
-      role: 'user',
-      approved: false,
-    });
+    const account = await getAccount(employeeId);
+    if (account) {
+      const valid = await bcrypt.compare(password, account.password_hash || '');
+      if (!valid) return json(res, 401, { error: 'บัญชีนี้มีอยู่ในระบบกลาง กรุณาใช้รหัสผ่านเดิม' });
+      await createMembership(account.id, 'user', false);
+    } else {
+      await createUser({
+        first_name: firstName.slice(0, 100),
+        last_name: lastName.slice(0, 100),
+        employee_id: employeeId,
+        branch: branch.slice(0, 150),
+        password_hash: await bcrypt.hash(password, 12),
+        role: 'user',
+        approved: false,
+      });
+    }
     json(res, 201, { success: true, message: 'ลงทะเบียนสำเร็จ กรุณารอผู้ดูแลอนุมัติ' });
   } catch (error) {
     safeError(res, error, 'register');

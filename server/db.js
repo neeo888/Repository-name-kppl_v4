@@ -1,10 +1,15 @@
-const BASE_FIELDS = 'id,first_name,last_name,employee_id,branch,password_hash,role,approved,created_at';
+const ACCOUNT_FIELDS = 'id,first_name,last_name,employee_id,branch,password_hash,created_at';
+const MEMBERSHIP_FIELDS = 'id,account_id,app_id,role,approved,created_at';
 
 function config() {
   const url = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
   if (!url || !key) throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
   return { url, key };
+}
+
+function appId() {
+  return process.env.KPPL_APP_ID || 'kppl-v4';
 }
 
 async function request(path, options = {}) {
@@ -29,28 +34,68 @@ async function request(path, options = {}) {
   return data;
 }
 
-const employeeFilter = (employeeId) => `employee_id=eq.${encodeURIComponent(employeeId)}`;
+const eq = (column, value) => `${column}=eq.${encodeURIComponent(value)}`;
 
-async function getUser(employeeId) {
-  const rows = await request(`users?select=${BASE_FIELDS}&${employeeFilter(employeeId)}&limit=1`);
+async function getAccount(employeeId) {
+  const rows = await request(`shared_accounts?select=${ACCOUNT_FIELDS}&${eq('employee_id', employeeId)}&limit=1`);
   return rows[0] || null;
 }
 
-async function listUsers() {
-  return request(`users?select=${BASE_FIELDS}&order=id.asc`);
+async function getMembership(accountId) {
+  const rows = await request(
+    `app_memberships?select=${MEMBERSHIP_FIELDS}&${eq('account_id', accountId)}&${eq('app_id', appId())}&limit=1`,
+  );
+  return rows[0] || null;
 }
 
-async function createUser(user) {
-  const rows = await request('users', {
+async function getUser(employeeId) {
+  const account = await getAccount(employeeId);
+  if (!account) return null;
+  const membership = await getMembership(account.id);
+  if (!membership) return null;
+  return { ...account, ...membership, id: account.id, membership_id: membership.id };
+}
+
+async function listUsers() {
+  const memberships = await request(
+    `app_memberships?select=${MEMBERSHIP_FIELDS}&${eq('app_id', appId())}&order=id.asc`,
+  );
+  if (!memberships.length) return [];
+  const accounts = await request(`shared_accounts?select=${ACCOUNT_FIELDS}&order=id.asc`);
+  const byId = new Map(accounts.map((account) => [String(account.id), account]));
+  return memberships.map((membership) => {
+    const account = byId.get(String(membership.account_id));
+    return account ? { ...account, ...membership, id: account.id, membership_id: membership.id } : null;
+  }).filter(Boolean);
+}
+
+async function insert(table, value) {
+  const rows = await request(table, {
     method: 'POST',
     headers: { Prefer: 'return=representation' },
-    body: JSON.stringify(user),
+    body: JSON.stringify(value),
   });
   return rows[0] || null;
 }
 
-async function updateUser(employeeId, changes) {
-  const rows = await request(`users?${employeeFilter(employeeId)}`, {
+async function createMembership(accountId, role = 'user', approved = false) {
+  return insert('app_memberships', {
+    account_id: accountId,
+    app_id: appId(),
+    role,
+    approved,
+  });
+}
+
+async function createUser(user) {
+  const { role = 'user', approved = false, ...accountValues } = user;
+  const account = await insert('shared_accounts', accountValues);
+  const membership = await createMembership(account.id, role, approved);
+  return { ...account, ...membership, id: account.id, membership_id: membership.id };
+}
+
+async function patch(table, filter, changes) {
+  const rows = await request(`${table}?${filter}`, {
     method: 'PATCH',
     headers: { Prefer: 'return=representation' },
     body: JSON.stringify(changes),
@@ -58,8 +103,28 @@ async function updateUser(employeeId, changes) {
   return rows[0] || null;
 }
 
+async function updateUser(employeeId, changes) {
+  const user = await getUser(employeeId);
+  if (!user) return null;
+  const accountKeys = ['first_name', 'last_name', 'branch', 'password_hash'];
+  const accountChanges = Object.fromEntries(Object.entries(changes).filter(([key]) => accountKeys.includes(key)));
+  const membershipChanges = Object.fromEntries(
+    Object.entries(changes).filter(([key]) => ['role', 'approved'].includes(key)),
+  );
+  if (Object.keys(accountChanges).length) {
+    await patch('shared_accounts', eq('id', user.id), accountChanges);
+  }
+  if (Object.keys(membershipChanges).length) {
+    await patch('app_memberships', eq('id', user.membership_id), membershipChanges);
+  }
+  return getUser(employeeId);
+}
+
 async function deleteUser(employeeId) {
-  return request(`users?${employeeFilter(employeeId)}`, {
+  const user = await getUser(employeeId);
+  if (!user) return null;
+  // Delete only this application's membership. The shared account remains for other apps.
+  return request(`app_memberships?${eq('id', user.membership_id)}`, {
     method: 'DELETE',
     headers: { Prefer: 'return=representation' },
   });
@@ -75,4 +140,6 @@ function publicUser(user) {
   };
 }
 
-module.exports = { createUser, deleteUser, getUser, listUsers, publicUser, updateUser };
+module.exports = {
+  createMembership, createUser, deleteUser, getAccount, getMembership, getUser, listUsers, publicUser, updateUser,
+};

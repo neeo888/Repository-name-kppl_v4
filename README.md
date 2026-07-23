@@ -14,6 +14,16 @@ Login ใช้ Node.js Vercel Functions ภายใต้ `/api` ส่วน 
 
 ห้ามนำ `SUPABASE_SERVICE_ROLE_KEY` ไปใช้ใน JavaScript ฝั่ง browser หรือ commit เข้า Git
 
+### การใช้บัญชีร่วมกับหลายโปรเจกต์
+
+- `shared_accounts` เก็บ Username และ Password hash กลาง
+- `app_memberships` เก็บ role และสถานะอนุมัติแยกตาม `app_id`
+- โปรเจกต์นี้ใช้ `KPPL_APP_ID=kppl-v4`
+- การลบสมาชิกในหน้า Admin จะลบเฉพาะ membership ของโปรเจกต์นี้
+- การรีเซ็ตรหัสผ่านเป็นการเปลี่ยนรหัสกลางและมีผลกับทุกโปรเจกต์ที่ใช้บัญชีนั้น
+- ตารางข้อมูลธุรกิจของแต่ละโปรเจกต์ต้องใช้ชื่อหรือ schema แยกกัน ห้ามใช้ migration
+  ที่สั่ง drop/alter ตารางของโปรเจกต์อื่น
+
 Dashboard สำหรับติดตามเอกสารงานซ่อมท่อ ใช้ PHP 8, MySQL และ server-side session authentication
 
 ## การตั้งค่า

@@ -1,5 +1,5 @@
 const bcrypt = require('bcryptjs');
-const { createUser, getUser, updateUser } = require('../server/db');
+const { createMembership, createUser, getAccount, getUser, updateUser } = require('../server/db');
 const { json, method, safeError } = require('../server/http');
 
 module.exports = async function handler(req, res) {
@@ -23,8 +23,17 @@ module.exports = async function handler(req, res) {
       approved: true,
     };
     const existing = await getUser(employeeId);
-    if (existing) await updateUser(employeeId, values);
-    else await createUser({ ...values, employee_id: employeeId });
+    if (existing) {
+      await updateUser(employeeId, values);
+    } else {
+      const account = await getAccount(employeeId);
+      if (account) {
+        await createMembership(account.id, 'admin', true);
+        await updateUser(employeeId, values);
+      } else {
+        await createUser({ ...values, employee_id: employeeId });
+      }
+    }
     json(res, 200, { success: true, employee_id: employeeId });
   } catch (error) {
     safeError(res, error, 'setup-admin');
