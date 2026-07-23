@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS reports (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    report_type VARCHAR(100) NOT NULL,
+    reporter_name VARCHAR(100),
+    report_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(50) DEFAULT 'Pending'
+);
